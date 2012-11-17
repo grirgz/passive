@@ -1,0 +1,73 @@
+// avoir du son
+- git hub
+- spreading
+- faire un preset par defaut
+- les macro sauvent pas leur nom
+- systeme pour avoir les freq relatives au midikey ou non
+- le bypass amp marche pas
+- bypass autre que fx1 marche pas
+- mettre un limiter au feedback
+- gerer l'envelope d'amp
+- bug: quand load preset, la mod de performer est pas appliqué direct
+- bug: les step matrix n'affichent pas les données du controlleur
+
+// autres
+- rajouter les wavetable au lfo
+- rajouter des courbes au performer
+- ui: verifier l'implementation de get_curvebank dans les ctrl
+- redimensionner les fader des filtres, les frames de bypass et master
+- prise en charge du rangeslider dans les modulators
+- gui: quand modulation, le knob doit tenir compte de la polarité
+- stepper: update instr uniquement en mouse up
+- performer: trouver un moyen d'updater la courbe moins couteux
+- internal env
+- macro midi
+
+// plus tard
+
+- implementer les env qui se trig en legato
+- implementer le osc bend (fm) et osc formant (am)
+- save/load curve preset
+- sidechain mod
+- save/load modulator preset
+- ajouter les autres boutons du modulator
+- ajouter les autres tab de l'ecran central
+- env sustain and morph
+- rajouter des racourcis claviers aux knob et une zone neutre pour la souris
+
+// fait
+- save/load preset
+- sortir les fx du synth
+- implementer les modulators qui se modulent eux meme
+- tester les effets et leur multichannel
+- implementer les macro controllers
+- redimensionner le performer pour voir les steps;
+- lister les nouveaux effets
+- bug: quand knob change de ctrl, les range restent
+- implementer les modslot sur les sliders et modslot column
+- implementer les effets du synth
+- faire que les controlleurs s'updatent en temps reel sur le synthdef
+- ajouter aux macro knob label, numero et drag source
+- change macro keyboard en dragsource
+- memory leak des buffers
+- le fx2 bug
+- quand change de filtre kind, les valeurs changent pas
+- refaire la liste des arguments du synth
+- ajouter les controller aux env frames
+- faire marcher les drag n drop
+- ecrire modulation_manager.get_instr_modulation
+- set_range n'est pas correctement clipé
+- ajouter l'ecran de routing
+- ajouter les arguments aux modulator dans le synth
+- implementer l'ecran de selection des courbes performer
+- debug le menu pour choisir lfo, performer, stepper
+- ajouter les arguments aux effets dans le synth
+- finir la liste des bypass routing
+- implementer osc bypass dans synth
+- implementer les wavetable
+
+
+////////////////// BUGS
+- instr patch args
+- instr asMap
+- multislider action
