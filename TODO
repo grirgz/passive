@@ -1,17 +1,17 @@
 // avoir du son
-- git hub
 - spreading
 - faire un preset par defaut
 - les macro sauvent pas leur nom
 - systeme pour avoir les freq relatives au midikey ou non
-- le bypass amp marche pas
-- bypass autre que fx1 marche pas
-- mettre un limiter au feedback
 - gerer l'envelope d'amp
 - bug: quand load preset, la mod de performer est pas appliqué direct
-- bug: les step matrix n'affichent pas les données du controlleur
+- bug: implementer les modulators qui se modulent eux meme
+- bug: ajuster le range des sliders s'update pas en temps reel
 
 // autres
+- replace label number by gridbox in performer to works with qt
+- qt: knob label value must be truncated
+- faire un modslider horizontal
 - rajouter les wavetable au lfo
 - rajouter des courbes au performer
 - ui: verifier l'implementation de get_curvebank dans les ctrl
@@ -36,9 +36,13 @@
 - rajouter des racourcis claviers aux knob et une zone neutre pour la souris
 
 // fait
+- mettre un limiter au feedback
+- bypass autre que fx1 marche pas
+- bug: les step matrix n'affichent pas les données du controlleur
+- le bypass amp marche pas
+- git hub
 - save/load preset
 - sortir les fx du synth
-- implementer les modulators qui se modulent eux meme
 - tester les effets et leur multichannel
 - implementer les macro controllers
 - redimensionner le performer pour voir les steps;

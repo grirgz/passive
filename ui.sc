@@ -782,15 +782,19 @@
 	//////////
 
 	set_property: { arg self, controller, msg, name, val;
+		[controller.model.uname, self.ctrl(\steps1), name, val].debug("class_stepper_view: set_property");
 		switch(name,
 			\value, { 
-				if(controller === self.ctrl(\steps_amp) ) {
+				if(controller == self.ctrl(\steps_amp) ) {
+					"setting steps_amp".debug;
 					self.multislider.value = val;
 				};
-				if(controller === self.ctrl(\steps1) ) {
+				if(controller == self.ctrl(\steps1) ) {
+					"setting steps1".debug;
 					self.glidegrid.setNodeStates = [val];
 				};
-				if(controller === self.ctrl(\steps2) ) {
+				if(controller == self.ctrl(\steps2) ) {
+					"setting steps2".debug;
 					self.ampgrid.setNodeStates = [val];
 				};
 
@@ -805,6 +809,7 @@
 	new: { arg self, parent, size, index, main_controller, curve_edit;
 		var ctrl = { arg name; main_controller.get_mod_arg(index, name) };
 		self = self.deepCopy;
+		self.ctrl = { arg self, name; ctrl.(name) };
 		self.view_size = size ?? (512@300);
 		self.numstep = ctrl.(\steps1).get_numstep ?? 16;
 		self.stepper_layout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y));
@@ -814,6 +819,10 @@
 		self.curvegraph2 = ~class_curvegraph_view.new(self.stepper_layout, self.view_size.x@80, ctrl.(\perfcurve2), curve_edit);
 		self.glidegrid = self.make_boxgrid(self.stepper_layout, ctrl.(\steps1));
 		self.ampgrid = self.make_boxgrid(self.stepper_layout, ctrl.(\steps2));
+
+		~make_class_responder.(self, self.stepper_layout, ctrl.(\steps1), [ \set_property ]);
+		~make_class_responder.(self, self.stepper_layout, ctrl.(\steps2), [ \set_property ]);
+
 		self;
 	}
 );
@@ -1424,12 +1433,28 @@
 	parent: ~class_pknob_view,
 	new: { arg self, parent, size, controller;
 		var slot;
+		var is_vertical = true;
 		self = self.deepCopy;
 		self.vlayout_size = size ?? (080@160);
 		//self.vlayout_size = (080@100);
 		self.text_size_y = 20;
+		self.slot_size_x = 50;
 		self.numslot = try { controller.model.numslot } { 3 };
-		self.slider_size = self.vlayout_size.x@(self.vlayout_size.y - (self.text_size_y*2) - 10);
+
+		if(self.vlayout_size.x > self.vlayout_size.y) { 
+			is_vertical = false
+		};
+
+		if(is_vertical) {
+
+			self.text_size_x = self.vlayout_size.x;
+			self.val_size_x = self.vlayout_size.x;
+			self.slider_size = self.vlayout_size.x@(self.vlayout_size.y - (self.text_size_y*2) - 10);
+		} {
+			self.text_size_x = 100;
+			self.val_size_x = 50;
+			self.slider_size = (self.vlayout_size.x - self.text_size_x - self.val_size_x - self.slot_size_x)@self.vlayout_size.y;
+		};
 		self.slider_size.debug("******************* slider_size");
 		self.vlayout_size.debug("******************* vlayout_size");
 		//self.slider_size = self.vlayout_size.x@50;
@@ -1437,18 +1462,26 @@
 		self.controller = controller;
 
 
-		self.vlayout = VLayoutView.new(parent, (0@0) @ self.vlayout_size);
+		self.vlayout = if(is_vertical) {
+			VLayoutView.new(parent, (0@0) @ self.vlayout_size);
+		} {
+			HLayoutView.new(parent, (0@0) @ self.vlayout_size);
+		};
 		//self.vlayout.resize = 5;
 		self.vlayout.background = Color.gray(0.7);
-		self.label = StaticText.new(self.vlayout, self.vlayout_size.x @ self.text_size_y);
+		self.label = StaticText.new(self.vlayout, self.text_size_x @ self.text_size_y);
 		self.label.string = "Freq";
-		self.knob = ModSlider.new(self.vlayout, Rect(0,0,self.vlayout_size.x , self.slider_size.y));
-		self.val = StaticText.new(self.vlayout, self.vlayout_size.x @ self.text_size_y);
+
+		self.knob = ModSlider.new(self.vlayout, Rect(0,0,self.slider_size.x , self.slider_size.y));
+
+		self.val = StaticText.new(self.vlayout, self.val_size_x @ self.text_size_y);
 		self.val.string = "45654.54";
 		//self.slot_layout = VLayoutView.new(self.vlayout, self.vlayout_size.x @ (self.text_size_y *1));
-		self.slot_layout = HLayoutView.new(self.vlayout, 20 @ (self.text_size_y *3));
-		StaticText.new(self.slot_layout, Rect(0,0,5,5)); // spacer
-		self.slot_layout = VLayoutView.new(self.slot_layout, 20 @ (self.text_size_y *3));
+		self.slot_layout = VLayoutView.new(self.vlayout, 20 @ self.text_size_y);
+		//self.slot_layout = self.vlayout;
+		StaticText.new(self.slot_layout, Rect(0,0,5,1)); // spacer
+		//self.slot_layout = HLayoutView.new(self.slot_layout, 20 @ (self.text_size_y *3));
+		self.slot_layout = HLayoutView.new(self.slot_layout, 20 @ self.text_size_y-5);
 		//self.slot_layout.resize = 4;
 
 		self.slots = self.numslot.collect { arg idx;
@@ -1784,6 +1817,69 @@
 	}
 );
 
+~class_voicing_view = (
+	new: { arg self, parent, sizerect, main_controller;
+		var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
+		var row;
+		sizerect = sizerect.asRect;
+		self = self.deepCopy;
+		self.main_controller = { arg self; main_controller };
+
+		self.layout = HLayoutView.new(parent, sizerect);
+		self.left_layout = VLayoutView.new(self.layout, Rect(0,0,80,sizerect.height));
+		self.left_layout.background = Color.red;
+
+		ctrl.(\pitch_spread).debug("model!!!!!!!!!");
+
+		self.voice_max = ~class_edit_number_view.new(self.left_layout, nil, ctrl.(\unisono));
+		self.voice_unisono = ~class_edit_number_view.new(self.left_layout, nil, ctrl.(\unisono));
+
+		self.mono_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
+		self.mono_button.states = [
+			["Polyphony"],
+			["Monophony"],
+		];
+
+		self.trigger_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
+		self.trigger_button.states = [
+			["Always"],
+			["Legato"],
+			["Legato Thriller"],
+		];
+
+		( sizerect.width - self.left_layout.bounds.width ).debug("size!!!!!!!!!!!!");
+		self.right_layout = VLayoutView.new(self.layout, Rect(0,0, sizerect.width - self.left_layout.bounds.width, sizerect.height));
+
+		[\pitch, \wavetable, \pan].do { arg name;
+			var layout, onoff, label, lorange, slider, hirange;
+			var myctrl = { arg na; ctrl.((name++na).asSymbol) };
+
+			layout = HLayoutView.new(self.right_layout, Rect(0,0,self.right_layout.bounds.width, 40));
+			layout.background = Color.blue;
+
+			onoff = Button.new(layout, 30@30);
+			onoff.states = [
+				["On"],
+				["Off"],
+			];
+			onoff.value = ctrl.(("enable_"++name).asSymbol).model.val;
+			onoff.action = { arg but;
+				ctrl.(("enable_"++name).asSymbol).set_property(\value, but.value);
+			};
+			//label = StaticText.new(layout, 120@20);
+			//label.string_(main_controller.get_arg(( name++"_spread" ).asSymbol).model.name);
+
+			lorange = ~class_edit_number_view.new(layout, Rect(0,0,50,30), myctrl.("_lorange"));
+
+			slider = ~class_pslider_view.new(layout, (layout.bounds.width - 300)@layout.bounds.height, main_controller.get_arg(( name++"_spread" ).asSymbol));
+
+			hirange = ~class_edit_number_view.new(layout, Rect(0,0,50,30), myctrl.("_hirange"));
+		};
+
+		self;
+	}
+);
+
 ~class_saveload_view = (
 	new: { arg self, parent, sizerect, ctrl;
 		var row;
@@ -1796,18 +1892,18 @@
 		self.popup = ~class_popup_view.new(self.layout, Rect(0,0,150,30), ctrl);
 
 		self.bt_previous = Button.new(self.layout, Rect(0,0,30,30));
-		self.bt_previous.string = "<";
+		self.bt_previous.states = [["<"]];
 		self.bt_previous.action = {
 			ctrl.previous_preset;
 		};
 		self.bt_next = Button.new(self.layout, Rect(0,0,30,30));
-		self.bt_next.string = ">";
+		self.bt_next.states = [[">"]];
 		self.bt_next.action = {
 			ctrl.next_preset;
 		};
 
 		self.bt_save_as = Button.new(self.layout, Rect(0,0,60,30));
-		self.bt_save_as.string = "Save as";
+		self.bt_save_as.states = [["Save as"]];
 		self.bt_save_as.action = {
 			var action = { arg uname;
 				"action!!".debug;
@@ -1851,6 +1947,7 @@
 				if(kind == 0) {
 					self.body_layout.children[0].remove;
 					self.body = switch(idx,
+						3, { ~class_voicing_view.new(self.body_layout, self.body_size, main_controller) },
 						4, { ~class_routing_view.new(self.body_layout, self.body_size, main_controller) },
 						5, { ~class_saveload_view.new(self.body_layout, self.body_size, main_controller.get_arg(\presets_global)) },
 						{ ~class_routing_view.new(self.body_layout, self.body_size, main_controller) }
@@ -1875,6 +1972,7 @@
 		"class_center_frame_view.new: 1".debug;
 		self.layout = VLayoutView.new(parent, sizerect);
 		self.layout.background = Color.gray(0.9);
+		self.body_size = Point(self.layout.bounds.width,self.layout.bounds.height-00);
 
 		self.tab_layout = HLayoutView.new(self.layout, Rect(0,0,self.layout.bounds.width,20));
 		["Osc", "Ktr Osc", "Ktr Flt", "Voicing", "Routing", "Global"].do { arg name, i;
@@ -1886,7 +1984,6 @@
 			makebut.(self.modenv_layout, name, i, 1);
 		};
 		"class_center_frame_view.new: 3".debug;
-		self.body_size = Point(self.layout.bounds.width,self.layout.bounds.height-00);
 		self.body_layout = HLayoutView.new(self.layout, Rect(0,0,self.body_size.x,self.body_size.y));
 		self.body = ~class_env_edit_view.new(self.body_layout, self.body_size, 0, main_controller);
 		"class_center_frame_view.new: fin".debug;
@@ -2016,6 +2113,30 @@
 
 
 ////////// main gui
+
+
+~class_passive_view2 = (
+	new: { arg self, controller;
+		var controllers;
+		var frame_size;
+		var block_size = 300@300;
+		var get_controllers = { arg id;
+			self.controller.paramdata[id].collect { arg data; self.controller.get_arg(data.uname) };
+		};
+		self = self.deepCopy;
+		self.controller = controller;
+		
+
+		"hehehe1".debug;
+		self.window = Window.new("Passive", Rect(0,0,1400,800));
+		self.window.front;
+		self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
+
+		~class_voicing_view.new(self.main_layout, Rect(0,0,1000,300), controller);
+
+		self;
+	}
+);
 
 
 ~class_passive_view = (

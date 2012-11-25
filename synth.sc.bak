@@ -280,7 +280,6 @@ Instr(\passive, { arg
 
 	insert_feedback = { arg in, pos;
 		if(routing[\feedback] == pos) {
-			in = in.sum;
 			in = insert_effect.(in, \in_feedback);
 			LocalOut.ar(in);
 		}
@@ -913,13 +912,12 @@ Instr(\passive, { arg
 
 	///////// Pitch spreading
 
-	if(routing[\voicing][\enable_pitch]) {
-		var array = build_spread_array.(routing[\voicing][\unisono]);
-		array.debug("spread array");
-		freq = (freq.cpsmidi + (pitch_spread * array)).midicps;
-	} {
-		freq = freq ! routing[\voicing][\unisono];
-	};
+	//if(routing[\voicing][\enable_pitch]) {
+	//	var array = build_spread_array.(routing[\voicing][\unisono]);
+	//	freq = (freq.cpsmidi + (pitch_spread * array)).midicps;
+	//} {
+	//	freq = freq ! routing[\voicing][\unisono];
+	//};
 
 	freq.debug("llllllllll freq");
 
@@ -1005,11 +1003,10 @@ Instr(\passive, { arg
 	///////////////
 	debug("------ passive: gen faders");
 
-	feedback = LocalIn.ar(1) * feedback_amp ;
-	feedback = feedback.clip(-1,1);
-	Amplitude.kr(feedback).poll;
+	//feedback = LocalIn.ar(1) * feedback_amp ;
 	//feedback = Limiter.ar(feedback, 1);
-	feedback = onoff.(feedback, \feedback);
+	//feedback = onoff.(feedback, \feedback);
+	feedback = 0;
 
 	osc1_f1 = osc1 * osc1_fader;
 	osc1_f2 = osc1 * (1-osc1_fader);
@@ -1078,20 +1075,16 @@ Instr(\passive, { arg
 	debug("------ passive: pan");
 
 	pan.debug("------ passive: pan");
-	spread = 1;
-	//ou = SinOsc.ar(200);
-	//ou = ou * 10;
-	//ou = osc1;
-	//ou.poll;
+	spread = 0;
+	ou = SinOsc.ar(200);
+	ou.poll;
 
 	ou = ou * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
 	//ou = ou * EnvGen.ar(Env.linen(0.1,0.5,0.5,1),gate,doneAction:2);
 	ou.debug("---------- final ou");
-	pan_spread.poll;
-	ou = Splay.ar(ou, pan_spread, 1, pan);
+	ou = Splay.ar(ou, spread, 1, pan);
 	ou.debug("---------- final splay ou");
 
-	bypass_signal.poll;
 	bypass_signal = DC.ar(0);
 //	bypass_signal = bypass_signal + DC.ar(0);
 //	bypass_signal = bypass_signal * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
@@ -1099,13 +1092,12 @@ Instr(\passive, { arg
 //	bypass_signal = bypass_signal * bypass_amp;
 	//ou = Pan2.ar(ou, pan, 1);
 
-	insert_feedback.(ou, \after_pan);
+	insert_feedback.(ou.sum, \after_pan);
 
 	//////// Effects
 	debug("------ passive: fx");
 
 	ou = [ou, bypass_signal];
-	//ou;
 
 	//ou = bypass.(ou, \fx1, {
 	//	Instr(\p_effect).value((kind:kinds[\fx1], in:ou, arg1:fx1_arg1, arg2:fx1_arg2, arg3:fx1_arg3, arg4:fx1_arg4));
@@ -1127,7 +1119,7 @@ Instr(\passive, { arg
 //	debug("------ passive: END");
 //	ou = oudb;
 //	
-	ou = ou * amp;
+//	ou = ou * amp;
 	//ou = ou ! 2;
 
 },[
@@ -1482,8 +1474,7 @@ Instr(\p_parashaper, { arg in, mix, drive;
 Instr(\p_hardclipper, { arg in, mix, drive;
 	var sig;
 	//TODO
-	drive = 1-drive;
-	sig = in.clip(0-drive, drive);
+	sig = in.clip(drive);
 	SelectX.ar(mix, [in, sig]);
 }, [\audio]);
 

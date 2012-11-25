@@ -1330,3 +1330,44 @@ Dialog.openPanel({ arg path;
 { Out.ar(0,Brusselator.ar(Impulse.kr(MouseY.kr(1,500,'exponential')),MouseX.kr(0.01,0.1,'exponential'),1.15,0.5,0.5,1.0) )}.play
 
 
+(
+var build_spread_array;
+build_spread_array = { arg unisono;
+	var z, ret;
+	if(unisono.odd) {
+		z = (unisono-1 / 2).asInteger;
+		ret = z.collect { arg i; (i+1)/z };
+		ret = 0-ret.reverse ++ 0 ++ ret;
+	} {
+		z = (unisono / 2).asInteger;
+		ret = z.collect { arg i; (i+1)/z };
+		ret = 0-ret.reverse ++ ret;
+	};
+};
+
+10.do { arg x; [x,build_spread_array.(x)* -12].debug("x") }
+
+)
+
+(
+w = Window.new;
+v = ModSlider.new(w, Rect(10,10,50,150));
+v.range1 = -0.5;
+v.range2 = 0.5;
+v.range3 = 0.8;
+v.polarity2 = \bipolar;
+//v.background = Color.white;
+w.front;
+)
+
+(
+// horizontal
+w = Window.new;
+v = ModSlider.new(w, Rect(10,10,150,50));
+v.range1 = -0.5;
+v.range2 = 0.5;
+v.range3 = 0.8;
+v.polarity2 = \bipolar;
+//v.background = Color.white;
+w.front;
+)

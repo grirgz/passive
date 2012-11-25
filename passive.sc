@@ -8,6 +8,8 @@ Quarks.gui
 	(~current_dir +/+ "synth.sc").standardizePath.load;
 	"loading ui.sc".debug;
 	(~current_dir +/+ "ui.sc").standardizePath.load;
+	"loading paramdata.sc".debug;
+	(~current_dir +/+ "paramdata.sc").standardizePath.load;
 	"loading control.sc".debug;
 	(~current_dir +/+ "control.sc").standardizePath.load;
 };
@@ -28,13 +30,18 @@ Debug.enableDebug = true
 
 (
 ~load_passive.();
+//~new_passive.();
 ~passive.build_synthdef;
 
 )
 
 {SinOsc.ar(120)}.play
 s.quit
+s.boot
 ~midiresp = ~passive.make_midi_responder
+
+Synth(\passive, [\gate, 1])
+
 (
 ~load_passive.();
 ~passive.build_synthdef;
@@ -64,7 +71,14 @@ Task {
 ~r = Ref(~a)
 ~r.value = 4
 ~agt
+~passive.get_arg(\voicing_unisono)
+~passive.get_arg(\pitch_spread).get_bus.get{arg bus; bus.debug("bus")}
+~passive.get_arg(\pitch_spread).get_bus.get{arg bus; bus.debug("bus")}
 
+~passive.synthdef_args.keysValuesDo { arg key, val; val.debug(key)}
+~passive.synthdef_args.getPairs
+~passive.synthdef_ns_args[3][\voicing]
+~pass
 ~passive.synthdef_ns_args.postcs
 ~passive.build_synthdef;
 ~passive.synthdef_args[\osc1_wt_pos].get{ arg bus; bus.debug("bus") }
@@ -80,7 +94,9 @@ Task {
 ~passive.synthdef_args[\mod][\osc1_pitch][0][\source]
 ~passive.modulation_manager.get_instr_modulation
 ~passive.synthdef_args[\filter1_amp].get{ arg bus; bus.debug("bus") }
+~passive.synthdef_args[\pitch_spread].get{ arg bus; bus.debug("bus") }
 ~passive.synthdef_args[\filter2_amp].get{ arg bus; bus.debug("bus") }
+'c14'.asBus
 
 ~passive.get_arg(\filter).model.spec.map(0.6)
 
