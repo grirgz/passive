@@ -1,26 +1,23 @@
 // avoir du son
-- spreading
-- faire un preset par defaut
 - les macro sauvent pas leur nom
 - systeme pour avoir les freq relatives au midikey ou non
 - gerer l'envelope d'amp
-- bug: quand load preset, la mod de performer est pas appliqué direct
-- bug: implementer les modulators qui se modulent eux meme
-- bug: ajuster le range des sliders s'update pas en temps reel
-
-// autres
-- replace label number by gridbox in performer to works with qt
-- qt: knob label value must be truncated
-- faire un modslider horizontal
+- vibrato
+- internal env
 - rajouter les wavetable au lfo
 - rajouter des courbes au performer
+- pouvoir utiliser les curve a plusieurs
+- prise en charge du rangeslider dans les modulators
+
+// autres
+- deplacer load_preset_by_uname dans main_controller
+- replace label number by gridbox in performer to works with qt
+- qt: knob label value must be truncated
 - ui: verifier l'implementation de get_curvebank dans les ctrl
 - redimensionner les fader des filtres, les frames de bypass et master
-- prise en charge du rangeslider dans les modulators
 - gui: quand modulation, le knob doit tenir compte de la polarité
 - stepper: update instr uniquement en mouse up
 - performer: trouver un moyen d'updater la courbe moins couteux
-- internal env
 - macro midi
 
 // plus tard
@@ -36,6 +33,14 @@
 - rajouter des racourcis claviers aux knob et une zone neutre pour la souris
 
 // fait
+- changer le range des spreading
+- update quand change unisono
+- faire un modslider horizontal
+- bug: ajuster le range des sliders s'update pas en temps reel
+- bug: implementer les modulators qui se modulent eux meme
+- bug: quand load preset, la mod de performer est pas appliqué direct
+- faire un preset par defaut
+- spreading
 - mettre un limiter au feedback
 - bypass autre que fx1 marche pas
 - bug: les step matrix n'affichent pas les données du controlleur

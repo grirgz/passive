@@ -23,6 +23,7 @@ Debug.enableDebug = true
 (
 ~load_passive.();
 ~new_passive.();
+//~passive.load_preset_by_uname("default");
 ~passive.make_gui;
 ~passive.build_synthdef;
 "********************************************************************done".debug;
@@ -65,6 +66,18 @@ Task {
 ~modman = ~preset[\modulation_manager]
 
 
+~passive.modulation_manager.get_source(\osc1_pitch, 0)
+~passive.modulation_manager.get_instr_modulation
+~passive.modulation_manager.slot_dict[[\osc1_pitch, 0.0]]
+n = Dictionary.new;
+n[[\osc1_pitch, 0]] = 1
+~passive.modulation_manager.slot_dict.keysValuesDo { arg key, val; n[key] = val }
+~passive.modulation_manager.slot_dict.keysValuesDo { arg key, val; n[key] = val }
+~passive.modulation_manager.slot_dict.keys.do {
+	~passive.modulation_manager.slot_dict[key] = val;
+
+}
+
 ~a = 1
 ~a
 ~a.ref
@@ -72,6 +85,9 @@ Task {
 ~r.value = 4
 ~agt
 ~passive.get_arg(\voicing_unisono)
+~passive.get_arg(\voicing_wavetable_lorange).model.val
+~passive.get_arg(\voicing_wavetable_lorange).model.spec
+\unipolar.asSpec
 ~passive.get_arg(\pitch_spread).get_bus.get{arg bus; bus.debug("bus")}
 ~passive.get_arg(\pitch_spread).get_bus.get{arg bus; bus.debug("bus")}
 

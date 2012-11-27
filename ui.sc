@@ -976,6 +976,55 @@
 
 ////////// simple gui elements
 
+~class_ktrenv_widget = (
+	new: { arg self, parent, size;
+		self = self.deepCopy;
+		size = size ?? Rect(10,10,450,350);
+		self.env_view = EnvelopeView.new(parent, size);
+		//self.env_view.drawFunc { arg view;
+		//	Pen.line(0,10);
+		//	Pen.stroke;
+		//
+		//};
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]);
+		self.env_view.step_(1/128);
+		self.env_view.selectionColor = Color.red;
+		self.env_view.action = { arg view;
+			var val;
+			val = view.value;
+			if(view.index == 0) {
+				val[0][view.index] = 0;
+			};
+			if(view.index == (val[0].size-1)) {
+				val[0][view.index] = 1;
+			};
+			val[0].sort;
+			view.value = val;
+		};
+		self;
+	
+	},
+
+	set_linear: { arg self;
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]);
+	},
+
+	set_custom: { arg self, custom;
+		self.env_view.value_(custom);
+	},
+
+	set_off: { arg self;
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,0,0,0,0]]);
+	},
+
+	transfert_function: { arg self, val, scale=1;
+		var env = self.env_view.value;
+		e = Env(env[1], env[0][1..].differentiate);
+		e.at(val/scale)*scale;
+	}
+
+);
+
 ~class_modmatrix_view = (
 	new: { arg self, parent, controller;
 		var oscbut;
@@ -1793,6 +1842,26 @@
 		
 		HLayoutView.new(self.frame_layout, Rect(0,0,5,5)); // spacer
 
+	}
+);
+
+~class_ktrosc_view = (
+	new: { arg self, parent, sizerect, main_controller;
+		var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
+		var row;
+		var matrix_size;
+		sizerect = sizerect.asRect;
+		matrix_size = 200@sizerect.height;
+		self = self.deepCopy;
+		self.main_controller = { arg self; main_controller };
+
+		self.layout = HLayoutView.new(parent, sizerect);
+
+		self.ktrenv = ~class_ktrenv_widget.new(self.layout, Rect(0,0,sizerect.width - 200, sizerect.height));
+
+		self.matrix_layout = VLayoutView.new(self.layout, matrix_size.asRect);
+
+		self;
 	}
 );
 

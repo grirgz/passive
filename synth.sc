@@ -290,7 +290,7 @@ Instr(\passive, { arg
 	routing[\modulation_fxbus].debug("modulation_fxbus");
 
 	modulators_bus = 8.collect { arg idx;
-		In.ar(modulation_bus[idx], 1);
+		InFeedback.ar(modulation_bus[idx], 1);
 	};
 
 	input_mod = {
@@ -651,6 +651,13 @@ Instr(\passive, { arg
 		var input_array;
 		var vals;
 		keys = #[
+			pan,
+			///////// voincing
+
+			pitch_spread,
+			wavetable_spread,
+			pan_spread,
+
 			/////// oscs,
 
 			osc1_amp,
@@ -725,6 +732,13 @@ Instr(\passive, { arg
 		//	eq_lowshelf,
 		];
 		vals = [
+			pan,
+			///////// voincing
+
+			pitch_spread,
+			wavetable_spread,
+			pan_spread,
+
 			/////// oscs,
 
 			osc1_amp,
@@ -817,6 +831,15 @@ Instr(\passive, { arg
 		//};
 		//input_array.debug("passive: input: input_array");
 		# 
+
+			pan,
+
+			///////// voincing
+
+			pitch_spread,
+			wavetable_spread,
+			pan_spread,
+
 			/////// oscs,
 
 			osc1_amp,
@@ -912,6 +935,7 @@ Instr(\passive, { arg
 	modosc = onoff.(modosc, \modosc);
 
 	///////// Pitch spreading
+	routing[\voicing][\unisono].debug("unisono");
 
 	if(routing[\voicing][\enable_pitch]) {
 		var array = build_spread_array.(routing[\voicing][\unisono]);
@@ -919,6 +943,16 @@ Instr(\passive, { arg
 		freq = (freq.cpsmidi + (pitch_spread * array)).midicps;
 	} {
 		freq = freq ! routing[\voicing][\unisono];
+	};
+
+	if(routing[\voicing][\enable_wavetable]) {
+		var array = build_spread_array.(routing[\voicing][\unisono]);
+		array.debug("wavetable array");
+		osc1_wt_pos = (osc1_wt_pos + (wavetable_spread * kinds[\osc1_wt] * array)).clip(0, kinds[\osc1_wt]);
+		osc2_wt_pos = (osc2_wt_pos + (wavetable_spread * kinds[\osc2_wt] * array)).clip(0, kinds[\osc2_wt]);
+		osc3_wt_pos = (osc3_wt_pos + (wavetable_spread * kinds[\osc3_wt] * array)).clip(0, kinds[\osc3_wt]);
+	} {
+		//noop
 	};
 
 	freq.debug("llllllllll freq");
@@ -1007,7 +1041,7 @@ Instr(\passive, { arg
 
 	feedback = LocalIn.ar(1) * feedback_amp ;
 	feedback = feedback.clip(-1,1);
-	Amplitude.kr(feedback).poll;
+	//Amplitude.kr(feedback).poll;
 	//feedback = Limiter.ar(feedback, 1);
 	feedback = onoff.(feedback, \feedback);
 
@@ -1087,11 +1121,11 @@ Instr(\passive, { arg
 	ou = ou * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
 	//ou = ou * EnvGen.ar(Env.linen(0.1,0.5,0.5,1),gate,doneAction:2);
 	ou.debug("---------- final ou");
-	pan_spread.poll;
+	//pan_spread.poll;
 	ou = Splay.ar(ou, pan_spread, 1, pan);
 	ou.debug("---------- final splay ou");
 
-	bypass_signal.poll;
+	//bypass_signal.poll;
 	bypass_signal = DC.ar(0);
 //	bypass_signal = bypass_signal + DC.ar(0);
 //	bypass_signal = bypass_signal * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
@@ -1695,7 +1729,7 @@ Instr(\p_oscillator, { arg wt_range=0, amp=0.1, freq=200, wt=0, detune=0.0, wt_p
 	if(wt_range == 0) {
 		ou = Osc.ar(wt, endfreq);
 	} {
-		ou = VOsc.ar(wt+wt_position, endfreq);
+		ou = VOsc.ar(wt+(wt_position.clip(0,wt_range)), endfreq);
 	};
 	[freq, detune, amp].debug("p_oscillator: frq, detune, amp");
 	ou = ou * amp;

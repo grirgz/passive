@@ -1371,3 +1371,89 @@ v.polarity2 = \bipolar;
 //v.background = Color.white;
 w.front;
 )
+
+
+(
+~class_ktrenv_widget = (
+	new: { arg self, parent, size;
+		self = self.deepCopy;
+		size = size ?? Rect(10,10,450,350);
+		self.env_view = EnvelopeView.new(parent, size);
+		//self.env_view.drawFunc { arg view;
+		//	Pen.line(0,10);
+		//	Pen.stroke;
+		//
+		//};
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]);
+		self.env_view.step_(1/128);
+		self.env_view.selectionColor = Color.red;
+		self.env_view.action = { arg view;
+			var val;
+			val = view.value;
+			if(view.index == 0) {
+				val[0][view.index] = 0;
+			};
+			if(view.index == (val[0].size-1)) {
+				val[0][view.index] = 1;
+			};
+			val[0].sort;
+			view.value = val;
+		};
+		self;
+	
+	},
+
+	set_linear: { arg self;
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]);
+	},
+
+	set_custom: { arg self, custom;
+		self.env_view.value_(custom);
+	},
+
+	set_off: { arg self;
+		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,0,0,0,0]]);
+	},
+
+	transfert_function: { arg self, val, scale=1;
+		var env = self.env_view.value;
+		e = Env(env[1], env[0][1..].differentiate);
+		e.at(val/scale)*scale;
+	}
+
+);
+// horizontal
+w = Window.new;
+v = ~class_ktrenv_widget.new(w);
+//v.background = Color.white;
+w.front;
+)
+v.set_off
+v.transfert_function(28,128).trunc
+v.set_linear
+v.x = 0.1
+v.getEnv
+v.refresh
+v.dump
+~v = v.value
+
+e = Env(~v[1], ~v[0][1..].differentiate)
+e.at(0.1)
+~v[0][1..].differentiate
+~v
+
+(
+// horizontal
+w = Window.new;
+v = EnvelopeView.new(w, Rect(10,10,450,350));
+v.setEnv(e);
+w.front;
+)
+
+(
+e = Env([1, 2], [10]);
+w = Window("Env Editor", Rect(200, 200, 300, 200));
+v = SCEnvelopeEdit(w, w.view.bounds.moveBy(20, 20).resizeBy(-40, -40), e, 20).resize_(5);
+w.front;
+)
+

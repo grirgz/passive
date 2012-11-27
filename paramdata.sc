@@ -935,51 +935,69 @@
 	params[\voicing] = [
 			(
 				uname: \voicing_unisono,
-				kind: \knob,
+				kind: \static_knob,
 				numslot: 0,
 				spec: ControlSpec.new(1,64,\lin,1,1),
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_pitch_lorange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \pitch_spread,
+				spec_bound: \minval,
 				numslot: 0,
+				val: -1,
 				spec: specs[\pitch],
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_pitch_hirange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \pitch_spread,
+				spec_bound: \maxval,
 				numslot: 0,
+				val: 1,
 				spec: specs[\pitch],
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_wavetable_lorange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \wavetable_spread,
+				spec_bound: \minval,
 				numslot: 0,
-				spec: \unipolar.asSpec,
+				val: -1,
+				spec: \bipolar.asSpec,
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_wavetable_hirange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \wavetable_spread,
+				spec_bound: \maxval,
 				numslot: 0,
-				spec: \unipolar.asSpec,
+				val: 1,
+				spec: \bipolar.asSpec,
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_pan_lorange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \pan_spread,
+				spec_bound: \minval,
 				numslot: 0,
-				spec: \unipolar.asSpec,
+				val: -1,
+				spec: \bipolar.asSpec,
 				transmit: \voicing
 			),
 			(
 				uname: \voicing_pan_hirange,
-				kind: \knob,
+				kind: \spec_knob,
+				destination: \pan_spread,
+				spec_bound: \maxval,
 				numslot: 0,
-				spec: \unipolar.asSpec,
+				val: 1,
+				spec: \bipolar.asSpec,
 				transmit: \voicing
 			),
 			(
@@ -1014,7 +1032,7 @@
 				name: "Wavetable position",
 				kind: \knob,
 				val: 0,
-				spec: \unipolar.asSpec,
+				spec: \bipolar.asSpec,
 				numslot: 1,
 			),
 			(
@@ -1022,7 +1040,7 @@
 				name: "Pan",
 				kind: \knob,
 				val: 0,
-				spec: \unipolar.asSpec,
+				spec: \bipolar.asSpec,
 				numslot: 1,
 			),
 	];

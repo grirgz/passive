@@ -222,6 +222,8 @@
 ~make_pparam_controller_from_kind = { arg main_controller, paramdata;
 	switch(paramdata.kind,
 		\knob, { ~class_pparam_controller.new(main_controller, paramdata) },
+		\static_knob, { ~class_pparam_static_controller.new(main_controller, paramdata) },
+		\spec_knob, { ~class_pparam_spec_controller.new(main_controller, paramdata) },
 		\macro, { ~class_pparam_macro_controller.new(main_controller, paramdata) },
 		\mod_slot, { ~class_pparam_controller.new(main_controller, paramdata) },
 		\multiknob, { ~class_pparam_multi_controller.new(main_controller, paramdata) },
@@ -543,6 +545,7 @@
 	load_data: { arg self, data;
 		self.model.val = self.menu_items.detectIndex { arg item; item.uname == data.val_uname };
 		self.model.val_uname = data.val_uname;
+		self.set_property(\value, self.model.val);
 	},
 
 	new: { arg self, controller, paramdata;
@@ -576,6 +579,7 @@
 				self.model.val = val;
 				self.model.val_uname = self.menu_items[val].uname;
 				self.model.knobs.do { arg knobname;
+					[knobname, val, self.menu_items[val]].debug("°°class_pparam_kind_controller: set_property: value: variant");
 					self.main_controller.get_arg(knobname).set_variant(self.menu_items[val])
 				};
 				self.main_controller.update_arg(self.model.uname);
@@ -804,6 +808,7 @@
 	},
 
 	set_val: { arg self, val, norm=false;
+		[self.model.uname, val, norm].debug("class_pparam_controller: set_val");
 	
 		if(norm) {
 			self.model.norm_val = val;
@@ -885,6 +890,68 @@
 	get_norm_val: { arg self;
 		self.model.norm_val;
 	}
+
+);
+
+~class_pparam_static_controller = (
+	parent: ~class_pparam_controller,
+
+	new: { arg self, controller, paramdata;
+		self = self.deepCopy;
+		self.main_controller = { arg self; controller };
+		self.model.putAll(paramdata);
+		//self.bus = controller.get_new_control_bus(self.model.uname); // FIXME: should not have bus
+		self.in_init = true;
+		self.set_val(paramdata.val ?? self.model.spec.default);
+		self.in_init = false;
+
+		self;
+	},
+
+	update_val: { arg self;
+		self.model.uname.debug("class_pparam_fixed_controller: update_val");
+		if(self.in_init.not) { // bug if update while all args are not initialized
+			self.main_controller.update_arg(self.model.uname);
+		};
+	},
+
+
+);
+
+~class_pparam_spec_controller = (
+	parent: ~class_pparam_controller,
+
+	new: { arg self, controller, paramdata;
+		self = self.deepCopy;
+		self.main_controller = { arg self; controller };
+		self.model.putAll(paramdata);
+		self.in_init = true;
+		[paramdata.val, self.model.uname].debug("class_pparam_spec_controller: paramdata.val");
+		self.set_val(paramdata.val ?? self.model.spec.default);
+		[self.model.val, self.model.uname].debug("class_pparam_spec_controller: model.val");
+		self.in_init = false;
+
+		self;
+	},
+
+	update_val: { arg self;
+		var dest_param, spec;
+		if(self.in_init.not) {
+			dest_param = self.main_controller.get_arg(self.model.destination);
+			self.model.uname.debug("class_pparam_fixed_controller: update_val");
+			spec = dest_param.model.spec.copy;
+			if(self.model.spec_bound == \minval) {
+				spec.minval = self.model.val;
+				dest_param.model.spec = spec;
+			} {
+				spec.maxval = self.model.val;
+				dest_param.model.spec = spec;
+			};
+			dest_param.set_val(dest_param.model.norm_val, true);
+			dest_param.changed(\set_property, \value, dest_param.model.val);
+		};
+	},
+
 
 );
 
@@ -1209,7 +1276,10 @@
 
 	load_data: { arg self, data;
 		#[slot_dict, modulation_dict, source_dict, external_dict].do { arg key;
-			self[key] = data[key]
+			self[key] = Dictionary.new;
+			data[key].keysValuesDo { arg ke, va; 
+				self[key][ke] = va;
+			};
 		};
 	},
 
@@ -1310,11 +1380,13 @@
 
 	new: { arg self;
 		self = self.deepCopy;
+		"DEBUTTT".debug;
 		self.modulation_manager = ~class_modulation_manager.new(self);
-		self.make_params;
 		self.fx_feedback_bus = self.get_new_control_bus(\fx_fb);
+		self.fx_feedback_bus.debug("FXFEEDBACK");
 		self.fx_bus = self.get_new_audio_bus(\fx, 2);
 		self.fx_bypass_bus = self.get_new_audio_bus(\fx_bypass, 2);
+		self.make_params;
 		self.modulation_fxbus = 8.collect { arg idx;
 			self.get_new_audio_bus((\modfxbus++idx).asSymbol, 1);
 		};
@@ -1370,7 +1442,7 @@
 		self.data.keysValuesDo { arg key, val;
 			var uname, ctrl;
 			var kind;
-			//val.model.uname.debug("build_synthdef: uname");
+			val.model.uname.debug("build_synthdef: uname");
 			switch(val.model.transmit,
 				\bus, {
 					args[val.model.uname] = val.get_bus.asMap;
@@ -1402,6 +1474,8 @@
 					uname.debug("build: uname");
 					args[\routing][\voicing][uname] = switch(val.model.kind,
 						\knob, { val.model.val },
+						\static_knob, { val.model.val },
+						\spec_knob, { val.model.val },
 						\mute, { val.model.val == 0 }
 					);
 				},
@@ -1420,18 +1494,23 @@
 				}
 			);
 		};
+		"FIN build args".debug;
+		"build args 1".debug;
 		args[\mod] = self.modulation_manager.get_instr_modulation;
 		args[\routing][\fx_feedback_bus] = self.fx_feedback_bus.index; // FIXME: must not be shared bus until fx are separated
+		"build args 1".debug;
 		args[\routing][\modulation_fxbus] = self.modulation_fxbus.collect(_.index); // FIXME: must not be shared bus until fx are separated
 
 		//synthdef = Instr(\passive).asSynthDef( args );
 		//self.synthdef = synthdef;
 		//synthdef.add;
 		//self.synthdef.debug("synthdef");
+		"build args 1".debug;
 		args[\gate] = 1;
 		{
 			var enabled, kinds, mod, routing, steps;
 
+		"build args 1".debug;
 			enabled = args[\enabled];
 			kinds = args[\kinds];
 			mod = args[\mod];
@@ -1439,6 +1518,7 @@
 			steps = args[\steps];
 			self.synthdef_ns_args = [enabled, kinds, mod, routing, steps];
 
+		"build args 1".debug;
 			#[ enabled, kinds, mod, routing, steps ].do { arg key; args.removeAt(key) };
 
 			SynthDef(\passive, { 
@@ -1448,6 +1528,7 @@
 					Out.ar(self.fx_bypass_bus.index, ou[1]);
 					//Out.ar(0, ou);
 			}).add;
+		"build args 1".debug;
 
 			SynthDef(\passive_fx, { arg out = 0;
 					var ou;
@@ -1456,8 +1537,10 @@
 					ou = SynthDef.wrap(Instr(\passive_fx).func, nil, [in, in_bypass, enabled, kinds, mod, routing, steps]);
 					ou = Out.ar(out, ou);
 			}).add;
+		"build args 1".debug;
 		}.value;
 		self.synthdef_args = args;
+		"build args 1".debug;
 		//self.patch = Patch(\passive,  self.synthdef_args );
 		//self.patch.invalidateSynthDef;
 		//self.rebuild = false;
@@ -1590,7 +1673,17 @@
 		preset.data.keys.do { arg key;
 			self.data[key].load_data(preset.data[key]);
 			self.data[key].refresh;
-		}
+		};
+		self.rebuild_synthdef = true;
+		self.build_synthdef;
+	},
+
+	load_preset_by_uname: { arg self, uname;
+		self.get_arg(\presets_global).load_preset_by_uname(uname);
+	},
+
+	save_current_preset_as_uname: { arg self, uname;
+		self.get_arg(\presets_global).save_current_preset_as_uname(uname);
 	},
 
 	make_gui: { arg self;
