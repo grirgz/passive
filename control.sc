@@ -235,6 +235,7 @@
 		\perfcurve, { ~class_pparam_perfcurve_controller.new(main_controller, paramdata) },
 		\steps, { ~class_pparam_steps_controller.new(main_controller, paramdata) },
 		\preset, { ~class_presets_global_controller.new(main_controller, paramdata) },
+		\ktrcurve, { ~class_ktrcurve_controller.new(main_controller, paramdata) },
 		{ ~class_pparam_controller.new(main_controller, paramdata) }
 	);
 };
@@ -799,6 +800,11 @@
 		self;
 	},
 
+	set_transfert_function: { arg self, fun;
+		
+	
+	},
+
 	save_data: { arg self;
 		self.model;
 	},
@@ -1103,6 +1109,123 @@
 	}
 );
 
+~class_ktrcurve_controller = (
+	model: (
+		name: "KtrOsc",
+		kind: \ktrcurve,
+		transmit: \none,
+		//uname: \ktr_osc,
+		curve: \off,
+		//curves: (
+		//	linear: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]],
+		//	off: [[0,1/4,2/4,3/4,1],[0,0,0,0,0]],
+		//	user: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]
+		//),
+		//columns: [
+		//	[\target, "Target"],
+		//	[\linear, "Linear"],
+		//	[\off, "Off"],
+		//	[\user, "User"]
+		//],
+		//rows: [
+		//	[\osc1, "Osc 1"],
+		//	[\osc2, "Osc 2"],
+		//	[\osc3, "Osc 3"],
+		//	[\mosc, "M Osc"],
+		//	[\insfx, "InsFx"],
+		//],
+		//val: (
+		//	\osc1: \linear,
+		//	\osc2: \linear,
+		//	\osc3: \linear,
+		//	\mosc: \linear,
+		//	\insfx: \linear,
+		//),
+		//destinations: (
+		//	\osc1: \osc1_pitch,
+		//	\osc2: \osc2_pitch,
+		//	\osc3: \osc3_pitch,
+		//	\mosc: \modosc_pitch,
+		//	//\insfx: \blabla,
+
+		//)
+	),
+
+	new: { arg self, controller, paramdata;
+		self = self.deepCopy;
+		self.main_controller = { arg self; controller };
+		self.model.putAll(paramdata);
+
+		self;
+	},
+
+	get_current_curve: { arg self;
+		self.model.curves[self.model.curve];
+	},
+
+	set_curve_value: { arg self, key, curve;
+		self.model.curves[key] = curve;
+	},
+
+	set_current_curve_value: { arg self, curve;
+		self.model.curves[self.model.curve] = curve;
+	},
+
+	current_curve_is_editable: { arg self;
+		self.model.editable.includes(self.model.curve);
+	},
+
+	set_selected_curve_kind: { arg self, kind;
+		self.model.curve = kind;
+	},
+
+	get_selected_curve_kind: { arg self, kind;
+		self.model.curve;
+	},
+
+	get_transfert_function: { arg self, kind;
+		{ arg val, scale=1;
+			var key = self.model.val[kind];
+			var env = self.model.curves[key];
+			var en;
+			en = Env(env[1], env[0][1..].differentiate);
+			en.at(val/scale)*scale;
+		}
+	},
+
+	install_transfert_functions: { arg self;
+		self.model.destinations.keysValuesDo { arg key, val;
+			self.main_controller.get_arg(val).set_transfert_function(self.get_transfert_function(key))
+		}
+	},
+
+	set_property: { arg self, name, val, update=true;
+		var final_val, mod;
+		[name, val].debug("class_ktrosc_controller: set_property");
+		switch(name,
+			\value, { 
+				self.model.val = val
+			},
+			\line_value, { 
+				self.model.val[val[0]] = val[1]
+			},
+			\selected_curve_kind, {
+				self.set_selected_curve_kind(val);
+			}
+		);
+		if(update) {
+			self.changed(\set_property, name, val);
+		}
+	},
+
+	refresh: { arg self;
+		self.changed(\set_property, \value, self.model.val);
+		self.changed(\set_property, \selected_curve_kind, self.model.curve);
+
+	},
+
+);
+
 ~class_voicing_controller = (
 	model: (
 		name: "Voicing",
@@ -1351,14 +1474,28 @@
 			NoteOffResponder.removeAll;
 
 			self.nonr = NoteOnResponder { arg src, chan, num, veloc;
-
-				self.livebook[[chan, num]] = livesynth.value(num.midicps, veloc/127);
 				[src, chan, num, veloc].debug("note on");
+				
+				if(self.livebook[[chan, num]].isNil) {
+					self.livebook[[chan, num]] = livesynth.value(num.midicps, veloc/127);
+					self.livebook[[chan, num]].start_time = Process.elapsedTime;
+
+				} {
+					num.debug("note node is already playing");
+				};
+
+
 			};
 			self.noffr = NoteOffResponder { arg src, chan, num, veloc;
 				var note;
 				[self.livebook[[chan,num]], [src, chan, num, veloc]].debug("note off");
+				if((Process.elapsedTime - self.livebook[[chan,num]].start_time)  < 0.02) {
+					(Process.elapsedTime - self.livebook[[chan,num]].start_time ).debug("make_midi_note_responder: noff responder: kill node");
+					self.livebook[[chan,num]].synth_node.free;
+				};
 				self.livebook[[chan,num]].release_node;
+				self.livebook[[chan,num]] = nil;
+
 			};
 		},
 
@@ -1442,7 +1579,7 @@
 		self.data.keysValuesDo { arg key, val;
 			var uname, ctrl;
 			var kind;
-			val.model.uname.debug("build_synthdef: uname");
+			//val.model.uname.debug("build_synthdef: uname");
 			switch(val.model.transmit,
 				\bus, {
 					args[val.model.uname] = val.get_bus.asMap;
@@ -1555,12 +1692,38 @@
 	
 	},
 
+	compute_freq: { arg self, freq, destdict;
+		var dict = Dictionary.new;
+		var ktrosc = self.get_arg(\ktrcurve_osc);
+		var ktrfilt = self.get_arg(\ktrcurve_filter);
+		var midi = freq.cpsmidi;
+		midi.debug("compute_freq: midi");
+
+		dict[\freq] = freq;
+		dict[\ktr_osc1_freq] = ktrosc.get_transfert_function(\osc1).(midi, 128).midicps;
+		dict[\ktr_osc2_freq] = ktrosc.get_transfert_function(\osc2).(midi, 128).midicps;
+		dict[\ktr_osc3_freq] = ktrosc.get_transfert_function(\osc3).(midi, 128).midicps;
+		dict[\ktr_mosc_freq] = ktrosc.get_transfert_function(\mosc).(midi, 128).midicps;
+
+		dict[\ktr_filter1_freq] = ktrfilt.get_transfert_function(\filter1).(midi, 128).midicps;
+		dict[\ktr_filter2_freq] = ktrfilt.get_transfert_function(\filter2).(midi, 128).midicps;
+
+		dict.debug("compute_freq");
+
+		if(destdict.notNil) {
+			destdict.putAll(dict);
+			destdict;
+		} {
+			dict;
+		};
+	},
+
 	get_piano: { arg self;
 		{ arg freq=400, velocity=0.5;
 			var synth;
 			var busses;
 			"###########----- making note".debug;
-			self.synthdef_args[\freq] = freq;
+			self.compute_freq(freq, self.synthdef_args);
 			self.synthdef_args[\velocity] = velocity;
 			//p = Patch(\passive,  self.synthdef_args );
 			s.makeBundle(nil, {

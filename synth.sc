@@ -22,6 +22,17 @@ Instr(\passive, { arg
 		amp_mod,
 		gate=1,
 
+		//////// ktr
+
+		ktr_osc1_freq,
+		ktr_osc2_freq,
+		ktr_osc3_freq,
+		ktr_mosc_freq,
+		ktr_insfx_freq,
+
+		ktr_filter1_freq,
+		ktr_filter2_freq,
+
 		///////// voincing
 
 		pitch_spread,
@@ -196,7 +207,7 @@ Instr(\passive, { arg
 	var input, input_mod, modulate, modulators;
 	var feedback, insert_effect, insert_feedback, onoff, bypass;
 	var bypass_osc, bypass_dest, bypass_signal = 0;
-	var build_spread_array;
+	var build_spread_array, build_freq_spread_array;
 
 	//var kinds;
 
@@ -931,18 +942,21 @@ Instr(\passive, { arg
 	////////// Modulation Osc
 	//debug("------ passive: modulation osc");
 
-	modosc = SinOsc.ar(modosc_pitch);
+	modosc = SinOsc.ar((ktr_mosc_freq.cpsmidi + modosc_pitch).midicps);
 	modosc = onoff.(modosc, \modosc);
 
 	///////// Pitch spreading
 	routing[\voicing][\unisono].debug("unisono");
 
-	if(routing[\voicing][\enable_pitch]) {
-		var array = build_spread_array.(routing[\voicing][\unisono]);
-		array.debug("spread array");
-		freq = (freq.cpsmidi + (pitch_spread * array)).midicps;
-	} {
-		freq = freq ! routing[\voicing][\unisono];
+	build_freq_spread_array = { arg freq;
+		if(routing[\voicing][\enable_pitch]) {
+			var array = build_spread_array.(routing[\voicing][\unisono]);
+			array.debug("spread array");
+			freq = (freq.cpsmidi + (pitch_spread * array)).midicps;
+		} {
+			freq = freq ! routing[\voicing][\unisono];
+		};
+		freq;
 	};
 
 	if(routing[\voicing][\enable_wavetable]) {
@@ -958,9 +972,9 @@ Instr(\passive, { arg
 	freq.debug("llllllllll freq");
 
 
-	freq1 = freq;
-	freq2 = freq;
-	freq3 = freq;
+	freq1 = build_freq_spread_array.(ktr_osc1_freq);
+	freq2 = build_freq_spread_array.(ktr_osc2_freq);
+	freq3 = build_freq_spread_array.(ktr_osc3_freq);
 	
 	//[freq, freq1].debug("------ passive: modulation osc 2");
 
@@ -1068,7 +1082,7 @@ Instr(\passive, { arg
 	f1 = insert_effect.(f1, \before_filter1);
 	f1.debug("1 f1");
 	f1 = bypass.(f1, \filter1, {
-		Instr(\p_filter).value((in:f1, kind:kinds[\filter1], arg1:filter1_arg1, arg2:filter1_arg2, arg3:filter1_arg3));
+		Instr(\p_filter).value((in:f1, kind:kinds[\filter1], arg1:filter1_arg1, arg2:filter1_arg2, arg3:filter1_arg3, ffreq:ktr_filter1_freq));
 	});
 	f1.debug("2 f1");
 	f1 = insert_effect.(f1, \after_filter1);
@@ -1090,7 +1104,7 @@ Instr(\passive, { arg
 	f2 = insert_effect.(f2, \before_filter2);
 	f2 = f2 + f1_2;
 	f2 = bypass.(f2, \filter2, {
-		Instr(\p_filter).value((in:f2, kind: kinds[\filter2], arg1:filter2_arg1, arg2:filter2_arg2, arg3:filter2_arg3));
+		Instr(\p_filter).value((in:f2, kind: kinds[\filter2], arg1:filter2_arg1, arg2:filter2_arg2, arg3:filter2_arg3, ffreq:ktr_filter2_freq));
 	});
 	f2 = insert_effect.(f2, \after_filter2);
 
@@ -1696,23 +1710,28 @@ Instr(\p_performer, { arg steps, amp, rate, amp_mod, xfade, curve1, curve2;
 	sig = sig * amp_mod * amp;
 }, [NonControlSpec()]);
 
-Instr(\p_filter, { arg in, kind, arg1, arg2, arg3;
+Instr(\p_filter, { arg in, kind, arg1, arg2, arg3, ffreq;
 	var sig;
 	kind.debug("p_filter: kind");
 	sig = switch(kind,
 		\lpf, {
-			LPF.ar(in, arg1)
+			arg1 = (arg1+ffreq.cpsmidi).midicps;
+			LPF.ar(in, arg1);
 		},
 		\bpf, {
+			arg1 = (arg1+ffreq.cpsmidi).midicps;
 			BPF.ar(in, arg1, arg2)
 		},
 		\hpf, {
+			arg1 = (arg1+ffreq.cpsmidi).midicps;
 			HPF.ar(in, arg1)
 		},
 		\rlpf, {
+			arg1 = (arg1+ffreq.cpsmidi).midicps;
 			RLPF.ar(in, arg1, arg2)
 		},
 		\rhpf, {
+			arg1 = (arg1+ffreq.cpsmidi).midicps;
 			RHPF.ar(in, arg1, arg2)
 		},
 		\comb, {

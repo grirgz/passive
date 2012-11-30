@@ -19,6 +19,7 @@
 - stepper: update instr uniquement en mouse up
 - performer: trouver un moyen d'updater la courbe moins couteux
 - macro midi
+- eviter les conversion midi-freq redondantes
 
 // plus tard
 
@@ -80,3 +81,4 @@
 - instr patch args
 - instr asMap
 - multislider action
+- quand set mouseUpAction de EnvelopeView, faut reboot SwingOsc sinon action n'est plus appelé

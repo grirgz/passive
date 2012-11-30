@@ -977,9 +977,9 @@
 ////////// simple gui elements
 
 ~class_ktrenv_widget = (
-	new: { arg self, parent, size;
+	new: { arg self, parent, size, action;
 		self = self.deepCopy;
-		size = size ?? Rect(10,10,450,350);
+		size = size ?? Rect(10,10,450,150);
 		self.env_view = EnvelopeView.new(parent, size);
 		//self.env_view.drawFunc { arg view;
 		//	Pen.line(0,10);
@@ -991,6 +991,7 @@
 		self.env_view.selectionColor = Color.red;
 		self.env_view.action = { arg view;
 			var val;
+			"env_view:action!!".debug;
 			val = view.value;
 			if(view.index == 0) {
 				val[0][view.index] = 0;
@@ -1000,28 +1001,17 @@
 			};
 			val[0].sort;
 			view.value = val;
+			action.(view);
 		};
+		//self.env_view.mouseUpAction = action;
 		self;
 	
 	},
 
-	set_linear: { arg self;
-		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]);
+	set_curve: { arg self, curve, editable=true;
+		self.env_view.value_(curve);
+		self.env_view.editable = editable;
 	},
-
-	set_custom: { arg self, custom;
-		self.env_view.value_(custom);
-	},
-
-	set_off: { arg self;
-		self.env_view.value_([[0,1/4,2/4,3/4,1],[0,0,0,0,0]]);
-	},
-
-	transfert_function: { arg self, val, scale=1;
-		var env = self.env_view.value;
-		e = Env(env[1], env[0][1..].differentiate);
-		e.at(val/scale)*scale;
-	}
 
 );
 
@@ -1845,23 +1835,174 @@
 	}
 );
 
-~class_ktrosc_view = (
-	new: { arg self, parent, sizerect, main_controller;
-		var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
+~class_ktrcurve_view = (
+	new: { arg self, parent, sizerect, main_controller, ctrlname;
+		//var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
 		var row;
 		var matrix_size;
+		var oscbut, titlebut;
 		sizerect = sizerect.asRect;
-		matrix_size = 200@sizerect.height;
+		sizerect = Rect(0,0,sizerect.width-300, sizerect.height-50);
+		//sizerect = Rect(0,0,100, 50);
+		matrix_size = 250@sizerect.height;
 		self = self.deepCopy;
 		self.main_controller = { arg self; main_controller };
+		self.controller = main_controller.get_arg(ctrlname);
 
-		self.layout = HLayoutView.new(parent, sizerect);
+		self.layout = VLayoutView.new(parent, sizerect); // used to fix wrong parent height
+		self.layout = HLayoutView.new(self.layout, sizerect);
 
-		self.ktrenv = ~class_ktrenv_widget.new(self.layout, Rect(0,0,sizerect.width - 200, sizerect.height));
+		self.action = { arg view;
+			var val = view.value;
+			val.debug("ktrcurve action!!!");
+			self.controller.set_current_curve_value(val);
+		};
 
-		self.matrix_layout = VLayoutView.new(self.layout, matrix_size.asRect);
+		self.ktrenv = ~class_ktrenv_widget.new(self.layout, Rect(0,0,sizerect.width - matrix_size.x, sizerect.height), self[\action]);
 
+		self.matrix_layout = HLayoutView.new(self.layout, matrix_size.asRect);
+		
+		self.matching = {
+			var ret = Dictionary.new;
+			self.controller.model.columns.do { arg key, idx;
+				ret[key[0]] = idx;
+			};
+			ret;
+		}.value;
+		self.inv_matching = self.matching.invert;
+
+		self.line_matching = {
+			var ret = Dictionary.new;
+			self.controller.model.rows.do { arg key, idx;
+				ret[key[0]] = idx;
+			};
+			ret;
+		
+		}.value;
+		self.inv_line_matching = self.line_matching.invert;
+
+		self.old_selected_idx = 0 ! 5;
+		self.old_selected_kindidx = -1;
+		
+		titlebut = { arg parent, name, idx, special=false;
+			var but;
+			but = Button.new(parent, 80@15);
+			if(special.not) {
+				but.states = [
+					[name, Color.black, Color.clear],
+					[name, Color.black, Color.gray(0.5)],
+				];
+				but.action = { arg button;
+					//self.set_modkind_button(idx); // already done in set_property
+					//self.controller.set_property(\selected_modkind, idx, true); // use controller to update the knob
+					//self.ktrenv.env_view.action.debug("ciest quo icette action");
+					//self.ktrenv.env_view.action.value(self.ktrenv.env_view);
+					self.controller.set_property(\selected_curve_kind, self.inv_matching[idx]);
+				};
+			} {
+				but.states = [
+					[name, Color.black, Color.clear],
+				];
+			};
+			but;
+		};
+
+		oscbut = { arg parent, name, tidx, idx, special=false;
+			var but;
+			but = Button.new(parent, 20@15);
+			if(special) {
+				but.states = [
+					[name, Color.black, Color.clear],
+				];
+			} {
+				but.states = [
+					[name, Color.black, Color.clear],
+					[name, Color.black, Color.gray(0.5)],
+				];
+			};
+			if(special.not) {
+				but.action = { arg button;
+					self.set_modmatrix_button(tidx, idx);
+					[self.inv_line_matching, idx, tidx].debug("invlinematching, idx, tidx");
+					self.controller.set_property(\line_value, [self.inv_line_matching[idx], self.inv_matching[tidx]], false);
+					[self.inv_matching, idx, tidx].debug("invmatching, idx, tidx");
+					self.controller.set_property(\selected_curve_kind, self.inv_matching[tidx], true);
+					self.controller.model.val.debug("ctrl val");
+				};
+			};
+			but;
+		};
+
+		// line_layout is in fact row_layout
+		self.line_layouts = self.controller.model.columns.collect { arg tname, tidx;
+			var line_layout;
+			tname = tname[1];
+			line_layout = VLayoutView.new(self.matrix_layout, Rect(0,0,55,self.matrix_layout.bounds.height));
+			if(tidx == 0) {
+				titlebut.(line_layout, tname, tidx, true);
+				self.controller.model.rows.do { arg name, idx;
+					oscbut.(line_layout, name[1], tidx, idx, true); 
+				};
+
+			} {
+				titlebut.(line_layout, tname, tidx);
+				self.controller.model.rows.size.do { arg idx;
+					idx.debug("MAKING BUT");
+					oscbut.(line_layout, "X", tidx, idx) 
+				};
+			
+			};
+			line_layout;
+		};
+		"GNI".debug("GNI");
+		~make_class_responder.(self, self.layout, self.controller, [ \set_property ]);
 		self;
+	},
+
+	set_modmatrix_button: { arg self, rownum, oscnum;
+		//self.set_modkind_button(rownum);
+		[rownum, oscnum, self.old_selected_idx].debug("rownum, oscnum, old");
+		self.line_layouts[self.old_selected_idx[oscnum]].children[oscnum+1].value = 0;
+		self.line_layouts[rownum].children[oscnum+1].value = 1;
+		self.old_selected_idx[oscnum] = rownum;
+	},
+
+	set_modkind_button: { arg self, kindnum;
+		[kindnum, self.old_selected_kindidx].debug("kindnum, old");
+		if(kindnum != self.old_selected_kindidx) {
+			"1".debug;
+			if(self.old_selected_kindidx >= 0) {
+				self.line_layouts[self.old_selected_kindidx].children[0].value = 0;
+			};
+			"1".debug;
+			self.line_layouts[kindnum].children[0].value = 1;
+			"1".debug;
+			self.old_selected_kindidx = kindnum;
+			"1".debug;
+			self.ktrenv.set_curve(
+				self.controller.get_current_curve.debug("curve"),
+				self.controller.current_curve_is_editable
+			);
+			"1".debug;
+		} {
+			self.line_layouts[kindnum].children[0].value = 1;
+		
+		}
+	},
+
+	set_property: { arg self, controller, msg, name, val;
+		[name, val].debug("class_ktrosc_view: set_property");
+		switch(name,
+			\selected_curve_kind, {
+				self.set_modkind_button(self.matching[val]);
+			},
+			\value, { 
+				val.keysValuesDo { arg key, curvekind;
+					[key, curvekind, self.matching[curvekind]].debug("key, curvekind");
+					self.set_modmatrix_button(self.matching[curvekind], self.line_matching[key]);
+				};
+			}
+		)
 	}
 );
 
@@ -2016,6 +2157,8 @@
 				if(kind == 0) {
 					self.body_layout.children[0].remove;
 					self.body = switch(idx,
+						1, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_osc) },
+						2, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_filter) },
 						3, { ~class_voicing_view.new(self.body_layout, self.body_size, main_controller) },
 						4, { ~class_routing_view.new(self.body_layout, self.body_size, main_controller) },
 						5, { ~class_saveload_view.new(self.body_layout, self.body_size, main_controller.get_arg(\presets_global)) },
@@ -2041,7 +2184,9 @@
 		"class_center_frame_view.new: 1".debug;
 		self.layout = VLayoutView.new(parent, sizerect);
 		self.layout.background = Color.gray(0.9);
-		self.body_size = Point(self.layout.bounds.width,self.layout.bounds.height-00);
+
+		//FIXME: height should be less, currently the size is adjusted in each child
+		self.body_size = Point(self.layout.bounds.width,self.layout.bounds.height-00); 
 
 		self.tab_layout = HLayoutView.new(self.layout, Rect(0,0,self.layout.bounds.width,20));
 		["Osc", "Ktr Osc", "Ktr Flt", "Voicing", "Routing", "Global"].do { arg name, i;
@@ -2201,7 +2346,7 @@
 		self.window.front;
 		self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
 
-		~class_voicing_view.new(self.main_layout, Rect(0,0,1000,300), controller);
+		~class_ktrcurve_view.new(self.main_layout, Rect(0,0,1000,300), controller, \ktrcurve_osc);
 
 		self;
 	}

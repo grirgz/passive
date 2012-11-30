@@ -25,31 +25,31 @@
 				name: "LPF",
 				uname: \lpf,
 				args: ["Cutoff"],
-				specs: [\freq]
+				specs: [specs[\pitch]]
 			),
 			(
 				name: "RLPF",
 				uname: \rlpf,
 				args: ["Cutoff", "Resonance"],
-				specs: [\freq, \rq]
+				specs: [specs[\pitch], \rq]
 			),
 			(
 				name: "HPF",
 				uname: \hpf,
 				args: ["Cutoff"],
-				specs: [\freq]
+				specs: [specs[\pitch]]
 			),
 			(
 				name: "RHPF",
 				uname: \rhpf,
 				args: ["Cutoff", "Resonance"],
-				specs: [\freq, \rq]
+				specs: [specs[\pitch], \rq]
 			),
 			(
 				name: "BPF",
 				uname: \bpf,
 				args: ["Cutoff", "Resonance"],
-				specs: [\freq, \rq]
+				specs: [specs[\pitch], \rq]
 			),
 			(
 				name: "Comb",
@@ -331,7 +331,7 @@
 			uname: \modosc_pitch,
 			name: "Pitch",
 			kind: \knob,
-			spec: \widefreq.asSpec,
+			spec: specs[\pitch],
 			numslot: 2
 		),
 		(
@@ -1045,6 +1045,84 @@
 			),
 	];
 
+	////////// ktr
+
+	params[\ktrcurve] = [
+			(
+				uname: \ktrcurve_osc,
+				name: "Ktr Osc",
+				kind: \ktrcurve,
+				curves: (
+					linear: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]],
+					off: [[0,1/4,2/4,3/4,1],[0,0,0,0,0]+0.5],
+					user: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]
+				),
+				columns: [
+					[\target, "Target"],
+					[\linear, "Linear"],
+					[\off, "Off"],
+					[\user, "User"]
+				],
+				rows: [
+					[\osc1, "Osc 1"],
+					[\osc2, "Osc 2"],
+					[\osc3, "Osc 3"],
+					[\mosc, "M Osc"],
+					[\insfx, "InsFx"],
+				],
+				val: (
+					\osc1: \linear,
+					\osc2: \linear,
+					\osc3: \linear,
+					\mosc: \linear,
+					\insfx: \linear,
+				),
+				editable: [\user],
+				destinations: (
+					\osc1: \osc1_pitch,
+					\osc2: \osc2_pitch,
+					\osc3: \osc3_pitch,
+					\mosc: \modosc_pitch,
+					//\insfx: \blabla,
+
+				)
+			),
+			(
+				uname: \ktrcurve_filter,
+				name: "Ktr Filter",
+				kind: \ktrcurve,
+				curves: (
+					linear: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]],
+					off: [[0,1/4,2/4,3/4,1],[0,0,0,0,0]+0.5],
+					user1: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]],
+					user2: [[0,1/4,2/4,3/4,1],[0,1/4,2/4,3/4,1]]
+				),
+				columns: [
+					[\target, "Target"],
+					[\linear, "Linear"],
+					[\off, "Off"],
+					[\user1, "User 1"],
+					[\user2, "User 2"]
+				],
+				rows: [
+					[\filter1, "Filter 1"],
+					[\filter2, "Filter 2"],
+				],
+				val: (
+					\filter1: \linear,
+					\filter2: \linear,
+				),
+				editable: [\user1, \user2],
+				//destinations: (
+				//	\osc1: \osc1_pitch,
+				//	\osc2: \osc2_pitch,
+				//	\osc3: \osc3_pitch,
+				//	\mosc: \modosc_pitch,
+				//	//\insfx: \blabla,
+
+				//)
+			)
+	];
 
 	////////// presets
 

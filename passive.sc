@@ -28,11 +28,14 @@ Debug.enableDebug = true
 ~passive.build_synthdef;
 "********************************************************************done".debug;
 )
+~passive.load_preset_by_uname("default");
 
 (
 ~load_passive.();
-//~new_passive.();
-~passive.build_synthdef;
+~new_passive.();
+~passive.load_preset_by_uname("default");
+//~passive.build_synthdef;
+~midiresp = ~passive.make_midi_responder
 
 )
 
@@ -65,6 +68,7 @@ Task {
 
 ~modman = ~preset[\modulation_manager]
 
+~passive.get_arg(\ktrcurve_osc).get_transfert_function(\osc1).(10,128)
 
 ~passive.modulation_manager.get_source(\osc1_pitch, 0)
 ~passive.modulation_manager.get_instr_modulation
