@@ -1,13 +1,12 @@
 // avoir du son
-- les macro sauvent pas leur nom
-- systeme pour avoir les freq relatives au midikey ou non
-- gerer l'envelope d'amp
+- ktr pour insfx
 - vibrato
-- internal env
 - rajouter les wavetable au lfo
 - rajouter des courbes au performer
 - pouvoir utiliser les curve a plusieurs
 - prise en charge du rangeslider dans les modulators
+- bug: explosion du son en modifiant certains parametres
+- bug: xrun avec le passive_fx pour raison inconnue
 
 // autres
 - deplacer load_preset_by_uname dans main_controller
@@ -23,6 +22,7 @@
 
 // plus tard
 
+- implementer les modulators ktr, vel, AT, trR
 - implementer les env qui se trig en legato
 - implementer le osc bend (fm) et osc formant (am)
 - save/load curve preset
@@ -34,6 +34,10 @@
 - rajouter des racourcis claviers aux knob et une zone neutre pour la souris
 
 // fait
+- gerer l'envelope d'amp
+- internal env
+- les macro sauvent pas leur nom
+- systeme pour avoir les freq relatives au midikey ou non
 - changer le range des spreading
 - update quand change unisono
 - faire un modslider horizontal

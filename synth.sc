@@ -584,26 +584,27 @@ Instr(\passive, { arg
 		)),
 		Instr(\p_env).value((
 			gate:gate, delayTime:env4_delay_time, attackTime:env4_attack_time, decayTime:env4_decay_time,
-			sustainLevel:env4_decay_level, releaseTime:env4_release_time, peakLevel:env4_attack_level, curve:0
+			sustainLevel:env4_decay_level, releaseTime:env4_release_time, peakLevel:env4_attack_level, curve:0,
+			doneAction: 2
 		)),
 
 		Instr(\p_modulator).value((
-			kind:kinds[\modulator1], internal_mod:mod[\internal_mod1], steps:steps[0], gate:gate, amp:modulator1_amp, rate:modulator1_rate, 
+			kind:kinds[\modulator1], internal_mod:mod[\internal_mod0], steps:steps[0], gate:gate, amp:modulator1_amp, rate:modulator1_rate, 
 			attackTime:modulator1_env_attack, releaseTime:modulator1_env_decay, phase:modulator1_phase,
 			amp_mod:modulator1_ampmod, glidefade_mod:modulator1_glidefade, curve1:modulator1_curve1, curve2:modulator1_curve2
 		)),
 		Instr(\p_modulator).value((
-			kind:kinds[\modulator2], internal_mod:mod[\internal_mod2], steps:steps[1], gate:gate, amp:modulator2_amp, rate:modulator2_rate, 
+			kind:kinds[\modulator2], internal_mod:mod[\internal_mod1], steps:steps[1], gate:gate, amp:modulator2_amp, rate:modulator2_rate, 
 			attackTime:modulator2_env_attack, releaseTime:modulator2_env_decay, phase:modulator2_phase,
 			amp_mod:modulator2_ampmod, glidefade_mod:modulator2_glidefade, curve1:modulator2_curve1, curve2:modulator2_curve2
 		)),
 		Instr(\p_modulator).value((
-			kind:kinds[\modulator3], internal_mod:mod[\internal_mod3], steps:steps[2], gate:gate, amp:modulator3_amp, rate:modulator3_rate, 
+			kind:kinds[\modulator3], internal_mod:mod[\internal_mod2], steps:steps[2], gate:gate, amp:modulator3_amp, rate:modulator3_rate, 
 			attackTime:modulator3_env_attack, releaseTime:modulator3_env_decay, phase:modulator3_phase,
 			amp_mod:modulator3_ampmod, glidefade_mod:modulator3_glidefade, curve1:modulator3_curve1, curve2:modulator3_curve2
 		)),
 		Instr(\p_modulator).value((
-			kind:kinds[\modulator4], internal_mod:mod[\internal_mod4], steps:steps[3], gate:gate, amp:modulator4_amp, rate:modulator4_rate, 
+			kind:kinds[\modulator4], internal_mod:mod[\internal_mod3], steps:steps[3], gate:gate, amp:modulator4_amp, rate:modulator4_rate, 
 			attackTime:modulator4_env_attack, releaseTime:modulator4_env_decay, phase:modulator4_phase,
 			amp_mod:modulator4_ampmod, glidefade_mod:modulator4_glidefade, curve1:modulator4_curve1, curve2:modulator4_curve2
 		))
@@ -1008,10 +1009,10 @@ Instr(\passive, { arg
 
 	switch(routing[\modosc][\filterfm],
 		1, {
-			filter1_arg1 = (modosc * modosc_filterfm) + filter1_arg1;
+			filter1_arg1 = ((modosc * modosc_filterfm) + filter1_arg1.midicps).cpsmidi;
 		},
 		2, {
-			filter2_arg1 = (modosc * modosc_filterfm) + filter2_arg1;
+			filter2_arg1 = ((modosc * modosc_filterfm) + filter2_arg1.midicps).cpsmidi;
 		},
 	);
 
@@ -1132,7 +1133,8 @@ Instr(\passive, { arg
 	//ou = osc1;
 	//ou.poll;
 
-	ou = ou * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
+	//ou = ou * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
+	ou = ou * modulators[3];
 	//ou = ou * EnvGen.ar(Env.linen(0.1,0.5,0.5,1),gate,doneAction:2);
 	ou.debug("---------- final ou");
 	//pan_spread.poll;
@@ -1386,8 +1388,8 @@ Instr(\passive_fx, { arg
 	NonControlSpec(),
 ]);
 
-Instr(\p_env, { arg gate, delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve;
-	EnvGen.ar(Env.dadsr(delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve), gate);
+Instr(\p_env, { arg gate, delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve, doneAction=0;
+	EnvGen.ar(Env.dadsr(delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve), gate, doneAction:doneAction);
 });
 
 Instr(\p_noise, { arg kind, amp=0.1, color=0;
@@ -1637,16 +1639,26 @@ Instr(\p_lfo, { arg internal_mod, gate=1, amp, rate, xfade, phase, curve1, curve
 
 	env = EnvGen.ar(Env.perc(attackTime, releaseTime, 1), gate);
 
-	if(internal_mod.notNil and: {internal_mod[\dest].notNil}) {
+	if(internal_mod.notNil and: {internal_mod[\dest].notNil} and: { internal_mod[0][\norm_range].notNil }) {
+		var range = internal_mod[0][\norm_range];
+		var modulate = { arg sig;
+			var normsig;
+			normsig = internal_mod[\spec].unmap(sig);
+			internal_mod[\spec].map(normsig + (env * range))
+		};
+		range.debug("p_lfo: range");
 		switch(internal_mod[\dest],
 			\rate, {
-				rate = rate + (rate * env * internal_mod[\range]);
+				rate = modulate.(rate);
 			},
 			\xfade, {
-				xfade = xfade + (xfade * env * internal_mod[\range]);
+				xfade = modulate.(xfade);
+			},
+			\glidefade, {
+				xfade = modulate.(xfade);
 			},
 			\amp, {
-				amp = amp + (amp * env * internal_mod[\range]);
+				amp = modulate.(amp);
 			}
 		);
 	};

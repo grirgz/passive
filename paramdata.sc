@@ -1,3 +1,62 @@
+~curvebank = (
+
+//	saw4: { arg x; // bugged
+//		var y;
+//		y = sin(sqrt(x)/(x*2)).linlin(0,1,0,1);
+//		y;
+//	},
+	expsin: { arg x;
+		var y;
+		x = x % 1;
+		y = sin(exp(x*2)*sin(x));
+		y;
+	},
+	saw1: { arg x;
+		var y;
+		y = x % 1;
+		y;
+	},
+	square1: { arg x;
+		var y;
+		x = x % 1;
+		y = if(x<0.5) { 0 } { 1 };
+		y;
+	},
+	triangle1: { arg x;
+		var y;
+		x = x % 1;
+		y = if(x<0.5) { 2*x } { 2*(1-x) };
+		y;
+	},
+	sin1: { arg x;
+		var y;
+		y = sin(x*2pi).linlin(-1,1,0,1);
+		y;
+	},
+	sin2: { arg x;
+		var y;
+		y = sin(x*pi);
+		y;
+	},
+	sin4: { arg x;
+		var y;
+		y = sin(x*pi/2);
+		y;
+	},
+	line1: { arg x;
+		var y;
+		y = x;
+		y;
+	},
+	negline1: { arg x;
+		var y;
+		y = 1-x;
+		y;
+	}
+
+);
+~curvebank.known = false;
+
 ~passive_specs = (
 	// (minval, maxval, warp, step, default, units)
 	wt_pos: ControlSpec(0, 1, \lin, 0.01, 0),
@@ -796,6 +855,7 @@
 				uname: (osc++"_rate").asSymbol,
 				name: "Rate",
 				kind: \knob,
+				val: 1,
 				spec: specs[\rate],
 				numslot: 1
 			),

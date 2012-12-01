@@ -60,58 +60,6 @@
 };
 
 
-~curvebank = (
-
-//	saw4: { arg x; // bugged
-//		var y;
-//		y = sin(sqrt(x)/(x*2)).linlin(0,1,0,1);
-//		y;
-//	},
-	saw1: { arg x;
-		var y;
-		y = x % 1;
-		y;
-	},
-	square1: { arg x;
-		var y;
-		x = x % 1;
-		y = if(x<0.5) { 0 } { 1 };
-		y;
-	},
-	triangle1: { arg x;
-		var y;
-		x = x % 1;
-		y = if(x<0.5) { 2*x } { 2*(1-x) };
-		y;
-	},
-	sin1: { arg x;
-		var y;
-		y = sin(x*2pi).linlin(-1,1,0,1);
-		y;
-	},
-	sin2: { arg x;
-		var y;
-		y = sin(x*pi);
-		y;
-	},
-	sin4: { arg x;
-		var y;
-		y = sin(x*pi/2);
-		y;
-	},
-	line1: { arg x;
-		var y;
-		y = x;
-		y;
-	},
-	negline1: { arg x;
-		var y;
-		y = 1-x;
-		y;
-	}
-
-);
-~curvebank.known = false;
 
 ////////////////////// super controllers
 
@@ -422,7 +370,7 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		self.menu_items = controller.get_wavetables;
+		self.menu_items = controller.get_curvebank.keys.asArray.sort.reject{ arg x; x == \known } ++ [\custom];
 		self.model.putAll(paramdata);
 		self.buffer = Buffer.alloc(s, 1024, 1);
 		controller.register_buffer(self.buffer, self.model.uname);
@@ -842,7 +790,7 @@
 		var mod;
 		[name, val, update].debug("class_pparam_controller.set_property");
 		switch(name,
-			\label, { self.name = val },
+			\label, { self.model.name = val },
 			\range, {
 				// val: [slot_idx, modrange]
 				self.main_controller.modulation_manager.set_range(self.model.uname, val[0], val[1]);
@@ -1416,9 +1364,10 @@
 			var uname, idx;
 			var srckind, srcidx;
 			var ret_source, ret_range, ret_norm_range, ret_spec, muted;
+			var ret_dest;
 			# uname, idx = dest;
 			# srckind, srcidx = source;
-			if(srckind == \mod) {
+			if(srckind == \mod or: { srckind == \internal }) {
 				[dest, source].debug("srckindmod");
 				ret_source = srcidx;
 				if(self.modulation_dict[dest].notNil) {
@@ -1441,6 +1390,15 @@
 				}
 			}; 
 			if(ret_source.notNil) {
+				if(srckind == \internal) {
+					[uname.asString[..8], uname.asString[..8] == "modulator"].debug("modman uname");
+					if(uname.asString[..8] == "modulator") {
+						ret_dest = uname.asString.drop("modulator1_".size).asSymbol;
+						uname = (\internal_mod ++ ret_source).asSymbol;
+					} {
+						uname = \error;
+					}
+				};
 				if(mod[uname].isNil) {
 					mod[uname] = Dictionary.new
 				};
@@ -1449,6 +1407,9 @@
 					range: ret_range,
 					norm_range: ret_norm_range,
 				);
+				if(srckind == \internal) {
+					mod[uname][\dest] = ret_dest;
+				};
 				mod[uname][\spec] = ret_spec;
 			}
 		};

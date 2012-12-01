@@ -1457,3 +1457,16 @@ v = SCEnvelopeEdit(w, w.view.bounds.moveBy(20, 20).resizeBy(-40, -40), e, 20).re
 w.front;
 )
 
+
+b = Buffer.alloc(s, 512, 1)
+b.get(0, {|msg| msg.postln});
+(
+~funsig =  { arg x;
+	var y;
+	x = x % 1;
+	y = sin(exp(x*2)*sin(x));
+	y;
+};
+~load_curve_in_buffer.(b, ~funsig);
+b.plot;
+)

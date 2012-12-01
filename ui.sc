@@ -36,6 +36,15 @@
 	escape: 27
 );
 
+~map_modulator_to_color = { arg modkind;
+	switch(modkind,
+		\internal, { Color.magenta },
+		\mod, { Color.red },
+		\macro, { Color.green },
+		\midi, { Color.blue },
+		{ Color.black }
+	);
+};
 
 ////////////////////// GUIs
 
@@ -679,6 +688,9 @@
 		"prapri4".debug;
 
 		self.env_layout = VLayoutView.new(self.layout, Rect(0,0,block_size.x,block_size.y));
+		self.env_drag_source = DragSource.new(self.env_layout, Rect(0,0,block_size.x, 10));
+		self.env_drag_source.object = [\internal, index];
+		self.env_drag_source.string = "Internal Envelope";
 		self.env_view = ~class_ar_env_view.new(self.env_layout, block_size, ctrl.(\env_attack), ctrl.(\env_decay));
 		self.env_control_layout = HLayoutView.new(self.env_layout, block_size.asRect);
 		"prapri5".debug;
@@ -1272,11 +1284,7 @@
 					slot.string = "";
 				} {
 					slot.string = val[2];
-					switch(val[1],
-						\mod, { slot.stringColor = Color.red },
-						\macro, { slot.stringColor = Color.green },
-						\midi, { slot.stringColor = Color.blue }
-					);
+					slot.stringColor = ~map_modulator_to_color.(val[1]);
 				}
 
 			}
@@ -1410,11 +1418,7 @@
 					slot.string = "";
 				} {
 					slot.string = (val[2]+1).asString;
-					switch(val[1],
-						\mod, { slot.stringColor = Color.red },
-						\macro, { slot.stringColor = Color.green },
-						\midi, { slot.stringColor = Color.blue }
-					);
+					slot.stringColor = ~map_modulator_to_color.(val[1]);
 				};
 				//slot.string = "A";
 				[slot, slot.string, val].debug("pknob set_property: modulation_source");
@@ -2237,8 +2241,11 @@
 			};
 			tlayout = HLayoutView.new(klayout, Rect(0,0,bounds.width-10,tsize));
 			text = TextField.new(tlayout, Rect(0,0,bounds.width-20,tsize));
-			text.string = "Maciro " ++ idx;
+			text.string = "Miacro " ++ idx;
 			text.font = Font.new("Helvetica", 8);
+			text.action = {
+				ctrl.set_property(\label, text.string, false);
+			};
 			drag = DragSource.new(tlayout, Rect(0,0,10,tsize));
 			drag.object = [\macro, idx];
 			//drag.background = Color.yellow;
