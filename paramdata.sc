@@ -14,44 +14,49 @@
 	saw1: { arg x;
 		var y;
 		y = x % 1;
-		y;
+		y*2-1;
 	},
 	square1: { arg x;
 		var y;
 		x = x % 1;
-		y = if(x<0.5) { 0 } { 1 };
+		y = if(x<0.5) { -1 } { 1 };
 		y;
 	},
 	triangle1: { arg x;
 		var y;
 		x = x % 1;
 		y = if(x<0.5) { 2*x } { 2*(1-x) };
-		y;
+		y*2-1;
 	},
 	sin1: { arg x;
 		var y;
-		y = sin(x*2pi).linlin(-1,1,0,1);
+		y = sin(x*2pi);
+		y;
+	},
+	truesin1: { arg x;
+		var y;
+		y = sin(x*2pi);
 		y;
 	},
 	sin2: { arg x;
 		var y;
-		y = sin(x*pi);
+		y = sin(x*2pi*2);
 		y;
 	},
 	sin4: { arg x;
 		var y;
-		y = sin(x*pi/2);
+		y = sin(x*2pi*4);
 		y;
 	},
 	line1: { arg x;
 		var y;
 		y = x;
-		y;
+		y*2-1;
 	},
 	negline1: { arg x;
 		var y;
 		y = 1-x;
-		y;
+		y*2-1;
 	}
 
 );
@@ -404,7 +409,7 @@
 			uname: \modosc_phase,
 			name: "Phase",
 			kind: \knob,
-			spec: \freq.asSpec,
+			spec: \unipolar.asSpec,
 			numslot: 2
 		),
 		(
@@ -475,7 +480,7 @@
 			uname: \feedback_amp,
 			name: "Amp",
 			kind: \knob,
-			spec: specs[\wideamp],
+			spec: ControlSpec(0, 6, 'amp', 0, 0.1, ""),
 			numslot: 2
 		),
 		(
@@ -924,14 +929,14 @@
 			),
 			(
 				uname: (osc++"_env_attack").asSymbol,
-				name: "Internal Env Attack",
+				name: "Attack",
 				kind: \knob,
 				spec: specs[\env],
 				numslot: 0
 			),
 			(
 				uname: (osc++"_env_decay").asSymbol,
-				name: "Internal Env Decay",
+				name: "Decay",
 				kind: \knob,
 				spec: specs[\env],
 				numslot: 0
@@ -955,6 +960,48 @@
 			slotnum: 0,
 		)
 	};
+
+	/////////// vibrato
+
+	params[\vibrato] = [
+			(
+				uname: \vibrato,
+				name: "Vibrato",
+				val: 1,
+				kind: \mute,
+			),
+			(
+				uname: \vibrato_rate,
+				name: "Rate",
+				kind: \knob,
+				numslot: 1,
+				spec: ControlSpec(0.001, 20, \exp, 0, 0.1, units: " Hz"),
+				transmit: \bus
+			),
+			(
+				uname: \vibrato_depth,
+				name: "Depth",
+				kind: \knob,
+				numslot: 1,
+				val: 0,
+				spec: ControlSpec(0.00001, 1, \exp, 0, 0, units: " Hz"),
+				transmit: \bus
+			),
+			(
+				uname: \vibrato_env_attack,
+				name: "Attack",
+				kind: \knob,
+				spec: specs[\env],
+				numslot: 0
+			),
+			(
+				uname: \vibrato_env_decay,
+				name: "Decay",
+				kind: \knob,
+				spec: specs[\env],
+				numslot: 0
+			),
+	];
 
 	//////// Routing
 

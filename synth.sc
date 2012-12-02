@@ -33,6 +33,14 @@ Instr(\passive, { arg
 		ktr_filter1_freq,
 		ktr_filter2_freq,
 
+		///////// vibrato
+
+		vibrato_rate,
+		vibrato_depth,
+
+		vibrato_env_attack,
+		vibrato_env_decay,
+
 		///////// voincing
 
 		pitch_spread,
@@ -972,6 +980,20 @@ Instr(\passive, { arg
 
 	freq.debug("llllllllll freq");
 
+	if(enabled[\vibrato]) {
+		ktr_osc1_freq = Instr(\p_vibrato).value((
+			internal_mod:mod[\internal_mod8],
+			freq:ktr_osc1_freq, gate:gate, rate:vibrato_rate, depth:vibrato_depth, attack:vibrato_env_attack, decay:vibrato_env_decay
+		));
+		ktr_osc2_freq = Instr(\p_vibrato).value((
+			internal_mod:mod[\internal_mod8],
+			freq:ktr_osc2_freq, gate:gate, rate:vibrato_rate, depth:vibrato_depth, attack:vibrato_env_attack, decay:vibrato_env_decay
+		));
+		ktr_osc3_freq = Instr(\p_vibrato).value((
+			internal_mod:mod[\internal_mod8],
+			freq:ktr_osc3_freq, gate:gate, rate:vibrato_rate, depth:vibrato_depth, attack:vibrato_env_attack, decay:vibrato_env_decay
+		));
+	};
 
 	freq1 = build_freq_spread_array.(ktr_osc1_freq);
 	freq2 = build_freq_spread_array.(ktr_osc2_freq);
@@ -981,13 +1003,13 @@ Instr(\passive, { arg
 
 	switch(routing[\modosc][\phase],
 		1, {
-			freq1 = (modosc * modosc_phase) + freq1;
+			freq1 = (modosc * modosc_phase * freq1) + freq1;
 		},
 		2, {
-			freq2 = (modosc * modosc_phase) + freq2;
+			freq2 = (modosc * modosc_phase * freq2) + freq2;
 		},
 		3, {
-			freq3 = (modosc * modosc_phase) + freq3;
+			freq3 = (modosc * modosc_phase * freq3) + freq3;
 		}
 	);
 
@@ -1387,6 +1409,33 @@ Instr(\passive_fx, { arg
 	NonControlSpec(),
 	NonControlSpec(),
 ]);
+
+Instr(\p_vibrato, { arg internal_mod, freq, gate=1, rate, depth, attack, decay;
+	var env;
+
+	env = EnvGen.ar(Env.perc(attack, decay, 1), gate);
+
+	if(internal_mod.notNil and: {internal_mod[\dest].notNil} and: { internal_mod[0][\norm_range].notNil }) {
+		var range = internal_mod[0][\norm_range];
+		var modulate = { arg sig;
+			var normsig;
+			normsig = internal_mod[\spec].unmap(sig);
+			internal_mod[\spec].map(normsig + (env * range))
+		};
+		range.debug("p_vibrato: range");
+		switch(internal_mod[\dest],
+			\rate, {
+				rate = modulate.(rate);
+			},
+			\depth, {
+				depth = modulate.(depth);
+			}
+		);
+	};
+
+	Vibrato.kr(freq, rate, depth);
+
+}, [NonControlSpec()]);
 
 Instr(\p_env, { arg gate, delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve, doneAction=0;
 	EnvGen.ar(Env.dadsr(delayTime, attackTime, decayTime, sustainLevel, releaseTime, peakLevel, curve), gate, doneAction:doneAction);

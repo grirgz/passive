@@ -25,12 +25,12 @@
 	buffer.debug("buffer");
 	curvefunclist.do { arg curvefunc, idx;
 		buffer.loadCollection(FloatArray.fill(slicesize, { arg i;
-			curvefunc.(i/slicesize) * curve_amps.wrapAt(idx)
+			curvefunc.(i/slicesize).linlin(-1,1,0,1) * curve_amps.wrapAt(idx)
 		}), idx*slicesize, { "done".debug; })
 	}
 };
 
-~load_sample_in_wavetable_buffer = { arg buffer, path;
+~load_sample_as_signal = { arg path;
 	var file, sig;
 
 
@@ -39,9 +39,26 @@
 	sig = Signal.newClear(file.numFrames);
 	file.readData(sig);
 	file.close; // close the file
+	sig;
+};
+
+~load_sample_in_wavetable_buffer = { arg buffer, path;
+	var sig;
+	sig = ~load_sample_as_signal.(path);
 	~load_signal_in_wavetable_buffer.(buffer, sig);
 
 };
+
+~load_sample_as_sigfunc = { arg path;
+	var sig;
+	sig = ~load_sample_as_signal.(path);
+	{ arg x; 
+		x = x % 1;
+		sig[ x * sig.size ]
+	};
+
+};
+
 
 ~load_signal_in_wavetable_buffer = { arg buffer, sig;
 	var size, fsize;
@@ -212,29 +229,66 @@
 	},
 
 	save_data: { arg self;
-		self.model;
+		var data = self.model.deepCopy;
+		data.custom_curve = data.custom_curve.save_data;
 	},
 
 	load_data: { arg self, data;
 		self.model.curve = data.curve;
-		self.set_curve(self.model.curve)
+		if(data.custom_curve.notNil) {
+			self.model.custom_curve = ~class_wavetable_file.new_from_data(data.custom_curve);
+		};
+		self.set_curve(self.model.curve, true);
 	},
 
 	get_menu_items_names: { arg self;
-		self.get_curvebank.keys.asList.sort;
+		// TODO: reject \name, write a generic function to get sigfuncs without known and name
+		self.get_curvebank.keys.asList.reject(_ == \known).sort ++ [\custom];
 	},
 
 	get_curvebank: { arg self;
 		self.main_controller.get_curvebank;
 	},
 
-	set_curve: { arg self, val;
+	set_curve: { arg self, val, load=false;
 		var curvefun;
-		curvefun = self.main_controller.get_curvebank[val];
-		if(curvefun.notNil) {
-			~load_curve_in_wavetable_buffer.(self.buffer, curvefun);
+		var apply_action, cancel_action;
+		if(val == \custom) {
+
+			apply_action = { arg pathlist;
+				self.model.custom_curve = pathlist[0];
+				self.model.custom_curve.load_in_wavetable_buffer(self.buffer);
+				self.model.curve = val;
+				self.custom_sigfunc = self.model.custom_curve.as_sigfunc;
+				self.changed(\set_property, \curve, self.model.curve);
+			};
+
+			cancel_action = {
+				self.changed(\set_property, \curve, self.model.curve);
+			};
+
+			if(load) {
+				apply_action.(self.model.pathlist);
+				self.changed(\set_property, \curve, self.model.curve);
+			} {
+				~class_load_wavetable_dialog.new(apply_action, cancel_action, nil, true);
+			}
 		} {
-			val.debug("class_pparam_curve_controller: curve not valid");
+			curvefun = self.main_controller.get_curvebank[val];
+			if(curvefun.notNil) {
+				~load_curve_in_wavetable_buffer.(self.buffer, curvefun);
+				self.model.curve = val;
+			} {
+				val.debug("class_pparam_curve_controller: curve not valid");
+			}
+		};
+	},
+
+	get_sigfunc: { arg self;
+		if(self.model.curve == \custom) {
+			self[\custom_sigfunc];
+		} {
+			self.get_curvebank[self.model.curve];
 		}
 	},
 
@@ -381,13 +435,14 @@
 	},
 
 	save_data: { arg self;
-		self.model;
+		var data = self.model.deepCopy;
+		data.pathlist = data.pathlist.collect(_.save_data);
 	},
 
 	load_data: { arg self, data;
 		self.model.val = self.menu_items.detectIndex { arg item; item == data.val_uname };
 		self.model.val_uname = data.val_uname;
-		self.model.pathlist = data.pathlist;
+		self.model.pathlist = data.pathlist.collect{ arg dat; ~class_wavetable_file.new_from_data(dat) };
 		self.set_curve(self.model.val, true)
 	},
 
@@ -408,12 +463,13 @@
 				self.buffer_array = Buffer.allocConsecutive(pathlist.size, s, 2048);
 				self.buffer_array.do { arg buf, idx;
 					self.main_controller.register_buffer(buf, self.model.uname);
-					~load_sample_in_wavetable_buffer.(buf, pathlist[idx].fullPath);
+					pathlist[idx].load_in_wavetable_buffer(buf);
+					//~load_sample_in_wavetable_buffer.(buf, pathlist[idx].fullPath);
 				};
 				self.model.buffer_range = self.buffer_array.size-1;
 				osc_pos_ctrl = self.main_controller.get_arg("osc%_wt_pos".format(self.model.indexes).asSymbol);
 				osc_pos_ctrl.debug("osc_wt_pos ctrl");
-				osc_pos_ctrl.model.spec.maxval = self.model.buffer_range - 0.001;
+				osc_pos_ctrl.model.spec.maxval = self.model.buffer_range - 0.0001;
 				self.model.val_uname = curve;
 				self.model.val = curve_idx;
 				self.main_controller.update_arg(self.model.uname);
@@ -1107,6 +1163,16 @@
 		self;
 	},
 
+	save_data: { arg self;
+		self.model;
+	},
+
+	load_data: { arg self, data;
+		[\curve, \curves, \val].do { arg key;
+			self.model[key] = data[key];
+		};
+	},
+
 	get_current_curve: { arg self;
 		self.model.curves[self.model.curve];
 	},
@@ -1142,9 +1208,7 @@
 	},
 
 	install_transfert_functions: { arg self;
-		self.model.destinations.keysValuesDo { arg key, val;
-			self.main_controller.get_arg(val).set_transfert_function(self.get_transfert_function(key))
-		}
+		//TODO: unused (should set specs)
 	},
 
 	set_property: { arg self, name, val, update=true;
@@ -1391,13 +1455,22 @@
 			}; 
 			if(ret_source.notNil) {
 				if(srckind == \internal) {
+					var int_uname;
 					[uname.asString[..8], uname.asString[..8] == "modulator"].debug("modman uname");
-					if(uname.asString[..8] == "modulator") {
+					if(uname.asString[..8] == "modulator" or: { uname.asString[..6] == "modulator" }) {
 						ret_dest = uname.asString.drop("modulator1_".size).asSymbol;
-						uname = (\internal_mod ++ ret_source).asSymbol;
+						int_uname = (\internal_mod ++ ret_source).asSymbol;
 					} {
-						uname = \error;
-					}
+						int_uname = \error;
+					};
+					[uname.asString[..6], uname.asString[..6] == "vibrato"].debug("modman uname");
+					if(uname.asString[..6] == "vibrato") {
+						ret_dest = uname.asString.drop("vibrato_".size).asSymbol;
+						int_uname = (\internal_mod ++ ret_source).asSymbol;
+					} {
+						int_uname = \error;
+					};
+					uname = int_uname;
 				};
 				if(mod[uname].isNil) {
 					mod[uname] = Dictionary.new

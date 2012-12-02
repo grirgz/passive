@@ -6,6 +6,8 @@ Quarks.gui
 	~current_dir = "~/code/sc/passive/";
 	"loading synth.sc".debug;
 	(~current_dir +/+ "synth.sc").standardizePath.load;
+	"loading wavetable.sc".debug;
+	(~current_dir +/+ "wavetable.sc").standardizePath.load;
 	"loading ui.sc".debug;
 	(~current_dir +/+ "ui.sc").standardizePath.load;
 	"loading paramdata.sc".debug;
@@ -23,10 +25,10 @@ Debug.enableDebug = true
 (
 ~load_passive.();
 ~new_passive.();
-~passive.load_preset_by_uname("default");
+//~passive.load_preset_by_uname("default");
 ~passive.make_gui;
-~passive.build_synthdef;
-~midiresp = ~passive.make_midi_responder;
+//~passive.build_synthdef;
+//~midiresp = ~passive.make_midi_responder;
 "********************************************************************done".debug;
 )
 ~passive.load_preset_by_uname("default");
@@ -63,6 +65,12 @@ Task {
 }.play
 )
 
+(
+
+~load_passive.();
+"fou".debug;
+~class_load_wavetable_dialog.new;
+)
 
 ~preset = ~passive.save_preset
 ~passive.load_preset(~preset)
@@ -72,6 +80,7 @@ Task {
 ~passive.get_arg(\ktrcurve_osc).get_transfert_function(\osc1).(10,128)
 ~passive.get_arg(\macro1_control).model
 ~passive.get_arg(\modulator1_rate).model
+~passive.get_arg(\vibrato_depth).model
 
 ~passive.modulation_manager.get_source(\osc1_pitch, 0)
 ~passive.modulation_manager.get_instr_modulation

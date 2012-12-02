@@ -48,161 +48,6 @@
 
 ////////////////////// GUIs
 
-~class_load_wavetable_dialog = (
-	apply_done: false,
-	new: { arg self, apply_action, cancel_action, path;
-		var wtpath, folderlist, filelist, filepath, selectedlist = List.new, selectedfile;
-		self = self.deepCopy;
-
-		self.buffer = Buffer.alloc(s, 4096);
-
-		wtpath = path ?? "~/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24".standardizePath;
-		self.signal = Signal.newClear(2048);
-		folderlist = PathName.new(wtpath).folders;
-
-		self.window = Window.new("choose wavetable", Rect(0,0,1300,400));
-		self.window.onClose = {
-			self.buffer.free;
-			self.synthnode.release;
-			if(self.apply_done.not) {
-				cancel_action.();
-			}
-		};
-		self.layout = HLayoutView.new(self.window, Rect(0,0,1300,400));
-
-		self.folderlistview = ListView.new(self.layout, Rect(0,0,300,400));
-		self.folderlistview.items = folderlist.collect{ arg folder; folder.folderName };
-		self.folderlistview.action = { arg view, b, c;
-			[a, b, c].debug("action");
-			filelist = folderlist[view.value].files;
-			self.filelistview.items = filelist.collect { arg file; file.fileName };
-			self.filelistview.value = 0;
-			self.filelistview.action.value(self.filelistview);
-		};
-
-		self.filelistview = ListView.new(self.layout, Rect(0,0,300,400));
-		//self.filelistview.items = ["bla", "rah"];
-		self.filelistview.action = { arg view, b, c;
-			[view, b, c].debug("filelist action");
-			selectedfile = filelist[view.value];
-			self.display_file(selectedfile);
-		};
-
-		self.right_layout = VLayoutView.new(self.layout, Rect(0,0,300,400));
-
-		self.buttons_layout = HLayoutView.new(self.right_layout, Rect(0,0,300,20));
-
-		self.but_play = Button.new(self.buttons_layout, Rect(0,0,50,20));
-		self.but_play.string = "Play";
-		self.but_play.action = {
-			var path;
-			path = self.displayed_file.fullPath;
-			path.debug("play: path");
-			self.synthnode.debug("synth");
-			if(self.synthnode.isNil.debug("isNil")) {
-				"ou".debug;
-				~load_sample_in_wavetable_buffer.(self.buffer, path);
-				self.synthnode = { Osc.ar(self.buffer, MouseX.kr(20, 380), mul:0.1) ! 2  }.play;
-				self.but_play.string = "Stop";
-			} {
-				"iou".debug;
-				self.synthnode.release;
-				self.synthnode = nil;
-				self.but_play.string = "Play";
-			}
-		};
-
-		self.but_add = Button.new(self.buttons_layout, Rect(0,0,50,20));
-		self.but_add.string = "+ Add";
-		self.but_add.action = {
-			selectedlist.add(selectedfile);
-			self.selectedlistview.items = selectedlist.collect(_.fileName);
-		};
-
-		self.but_add = Button.new(self.buttons_layout, Rect(0,0,50,20));
-		self.but_add.string = "- Rem";
-		self.but_add.action = {
-			selectedlist.removeAt(self.selectedlistview.value);
-			self.selectedlistview.items = selectedlist.collect(_.fileName);
-		};
-
-		StaticText.new(self.buttons_layout, Rect(0,0,10,20)); //spacer
-
-		self.but_movedown = Button.new(self.buttons_layout, Rect(0,0,50,20));
-		self.but_movedown.string = "Down";
-		self.but_movedown.action = {
-			var pos, newpos, item;
-			pos = self.selectedlistview.value;
-			item = selectedlist.removeAt(pos);
-			selectedlist.insert((pos+1).clip(0,selectedlist.size), item);
-			self.selectedlistview.value = (pos+1).clip(0,selectedlist.size-1);
-			self.selectedlistview.items = selectedlist.collect(_.fileName);
-		};
-
-		self.but_moveup = Button.new(self.buttons_layout, Rect(0,0,50,20));
-		self.but_moveup.string = "Up";
-		self.but_moveup.action = {
-			var pos, newpos, item;
-			pos = self.selectedlistview.value;
-			item = selectedlist.removeAt(pos);
-			selectedlist.insert((pos-1).clip(0,selectedlist.size), item);
-			self.selectedlistview.value = (pos-1).clip(0,selectedlist.size-1);
-			self.selectedlistview.items = selectedlist.collect(_.fileName);
-		};
-
-		self.selectedlistview = ListView.new(self.right_layout, Rect(0,0,300,150));
-		self.selectedlistview.items = selectedlist.collect(_.fileName);
-		self.selectedlistview.action = { arg view, b, c;
-			[a, b, c].debug("action");
-			self.display_file(selectedlist[self.selectedlistview.value]);
-		};
-		
-		self.plotter = Plotter("plot", parent: self.right_layout);
-
-		self.but_apply = Button.new(self.right_layout, Rect(0,0,80,20));
-		self.but_apply.string = "Apply";
-		self.but_apply.action = {
-			apply_action.(selectedlist);
-			self.apply_done = true;
-			self.window.close;
-		};
-
-		//self.pack_layout = VLayoutView.new(self.layout, Rect(0,0,300,400));
-
-
-		//self.pack_title = TextField.new(self.pack_layout, Rect(0,0,300,20));
-
-		//self.packlistview = ListView.new(self.pack_layout, Rect(0,0,300,360));
-		//self.packlistview.items = selectedlist.collect(_.fileName);
-		//self.packlistview.action = { arg view, b, c;
-		//	[a, b, c].debug("action");
-		//	self.display_file(selectedlist[self.selectedlistview.value]);
-		//};
-
-
-		self.folderlistview.value = 0;
-		self.folderlistview.action.value(self.folderlistview);
-
-		self.window.front;
-
-		self;
-	},
-
-	display_file: { arg self, file;
-		var sf, sig;
-		self.displayed_file = file;
-		sf = SoundFile.openRead(file.fullPath);
-		sf.readData(self.signal);
-		sf.close;
-		self.plotter.value = self.signal.as(Array);
-		self.window.refresh;
-		if(self.synthnode.notNil) {
-			~load_signal_in_wavetable_buffer.(self.buffer, self.signal);
-		};
-	}
-
-);
-
 ~class_save_preset_dialog = (
 	apply_done: false,
 	new: { arg self, list, apply_action, cancel_action;
@@ -260,6 +105,7 @@
 	draw_columns: false,
 	change_curve_mode: false,
 	current_curve_pen: \sin1,
+	unipolar: true, 
 
 	new: { arg self, parent, size, controller, curve_edit;
 		self = self.deepCopy;
@@ -291,6 +137,10 @@
 				self.curvegraph.refresh;
 			}
 		)
+	},
+
+	get_sigfunc_by_index: { arg self, idx;
+		self.curvebank[self.curves.wrapAt(idx)]
 	},
 
 	make_curvegraph: { arg self, parent, size;
@@ -331,7 +181,7 @@
 				var x, y;
 				var scalefun;
 				scalefun = { arg x, y; 
-					y = fun.(x/scale.x+phase)*ampmod;
+					y = fun.(x/scale.x+phase).linlin(-1,1,0,1)*ampmod;
 					y = (1-y)*scale.y;
 					y = y.trunc;
 					y;
@@ -358,7 +208,7 @@
 					(size.x/numstep).trunc @ size.y,
 					ampmods.wrapAt(i),
 					self.phase,
-					self.curvebank[self.curves.wrapAt(i)]
+					self.get_sigfunc_by_index(i)
 				);
 			};
 			Pen.stroke;
@@ -415,6 +265,7 @@
 
 ~class_simple_curvegraph_view = (
 	parent: ~class_curvegraph_view,
+	//unipolar: false, 
 
 	new: { arg self, parent, size, ctrl; //,curvebank, curve;
 		self = self.deepCopy;
@@ -449,6 +300,10 @@
 		~make_class_responder.(self, self.curvegraph, self.controller, [ \set_property ]);
 
 		self;
+	},
+
+	get_sigfunc_by_index: { arg self, idx;
+		self.controller.get_sigfunc;
 	},
 
 	set_property: { arg self, controller, msg, name, val;
@@ -687,15 +542,17 @@
 		self.curve_select2 = ~class_curve_select_view.new(self.curve_select_layout, block_size, ctrl.(\curve2));
 		"prapri4".debug;
 
-		self.env_layout = VLayoutView.new(self.layout, Rect(0,0,block_size.x,block_size.y));
-		self.env_drag_source = DragSource.new(self.env_layout, Rect(0,0,block_size.x, 10));
-		self.env_drag_source.object = [\internal, index];
-		self.env_drag_source.string = "Internal Envelope";
-		self.env_view = ~class_ar_env_view.new(self.env_layout, block_size, ctrl.(\env_attack), ctrl.(\env_decay));
-		self.env_control_layout = HLayoutView.new(self.env_layout, block_size.asRect);
-		"prapri5".debug;
-		self.knob1 = ~class_pknob_view.new(self.env_control_layout, nil, ctrl.(\env_attack));
-		self.knob1 = ~class_pknob_view.new(self.env_control_layout, nil, ctrl.(\env_decay));
+		self.int_env = ~class_internal_env.new(self.layout, block_size.asRect, ctrl.(\env_attack), ctrl.(\env_decay), index);
+
+		//self.env_layout = VLayoutView.new(self.layout, Rect(0,0,block_size.x,block_size.y));
+		//self.env_drag_source = DragSource.new(self.env_layout, Rect(0,0,block_size.x, 10));
+		//self.env_drag_source.object = [\internal, index];
+		//self.env_drag_source.string = "Internal Envelope";
+		//self.env_view = ~class_ar_env_view.new(self.env_layout, block_size, ctrl.(\env_attack), ctrl.(\env_decay));
+		//self.env_control_layout = HLayoutView.new(self.env_layout, block_size.asRect);
+		//"prapri5".debug;
+		//self.knob1 = ~class_pknob_view.new(self.env_control_layout, nil, ctrl.(\env_attack));
+		//self.knob1 = ~class_pknob_view.new(self.env_control_layout, nil, ctrl.(\env_decay));
 
 		self;
 	}
@@ -987,6 +844,40 @@
 );
 
 ////////// simple gui elements
+
+~class_internal_env = (
+
+	new: { arg self, parent, size, ctrl_attack, ctrl_decay, index;
+		self = self.copy;
+		self.env_layout = VLayoutView.new(parent, size);
+		self.env_drag_source = DragSource.new(self.env_layout, Rect(0,0,self.env_layout.bounds.width, 13));
+		self.env_drag_source.object = [\internal, index];
+		self.env_drag_source.string = "Internal Envelope";
+		self.env_view = ~class_ar_env_view.new(self.env_layout, size, ctrl_attack, ctrl_decay);
+		self.env_control_layout = HLayoutView.new(self.env_layout, size.asRect);
+		self.knob_attack = ~class_pknob_view.new(self.env_control_layout, nil, ctrl_attack);
+		self.knob_decay = ~class_pknob_view.new(self.env_control_layout, nil, ctrl_decay);
+
+		self;
+
+	}
+
+);
+
+~widget_onoff_button = { arg parent, size, ctrl;
+	var onoff;
+	size = size ?? (30@30);
+	onoff = Button.new(parent, size);
+	onoff.states = [
+		["On"],
+		["Off"],
+	];
+	onoff.value = ctrl.model.val;
+	onoff.action = { arg but;
+		ctrl.set_property(\value, but.value);
+	};
+	onoff;
+};
 
 ~class_ktrenv_widget = (
 	new: { arg self, parent, size, action;
@@ -1839,6 +1730,56 @@
 	}
 );
 
+~class_oscpanel_view = (
+	new: { arg self, parent, sizerect, main_controller;
+		var ctrl = { arg name; main_controller.get_arg(("vibrato_"++name).asSymbol) };
+		var row;
+		var matrix_size;
+		var oscbut, titlebut;
+		sizerect = sizerect.asRect;
+		sizerect = Rect(0,0,sizerect.width-300, sizerect.height-50);
+		//sizerect = Rect(0,0,100, 50);
+		self = self.deepCopy;
+		self.main_controller = { arg self; main_controller };
+
+		self.layout = VLayoutView.new(parent, sizerect); // used to fix wrong parent height
+		self.layout = HLayoutView.new(self.layout, sizerect);
+
+
+		self.butlayout = VLayoutView.new(self.layout, Rect(0,0,100,60));
+		self.label = StaticText.new(self.butlayout, 100@30);
+		self.label.string = "Vibrato";
+		self.enable_vibrato = ~widget_onoff_button.(self.butlayout, 100@30, main_controller.get_arg(\vibrato));
+
+
+		"arrate couille".debug;
+		self.rate_knob = ~class_pknob_view.new(self.layout, nil, ctrl.(\rate));
+		"2arrate couille".debug;
+		self.depth_knob = ~class_pknob_view.new(self.layout, nil, ctrl.(\depth));
+		"4arrate couille".debug;
+
+		self.int_env = ~class_internal_env.new(self.layout, Rect(0,0,200,sizerect.height/2), ctrl.(\env_attack), ctrl.(\env_decay), 8);
+
+		self;
+	},
+
+
+	set_property: { arg self, controller, msg, name, val;
+		//[name, val].debug("class_ktrosc_view: set_property");
+		//switch(name,
+		//	\selected_curve_kind, {
+		//		self.set_modkind_button(self.matching[val]);
+		//	},
+		//	\value, { 
+		//		val.keysValuesDo { arg key, curvekind;
+		//			[key, curvekind, self.matching[curvekind]].debug("key, curvekind");
+		//			self.set_modmatrix_button(self.matching[curvekind], self.line_matching[key]);
+		//		};
+		//	}
+		//)
+	}
+);
+
 ~class_ktrcurve_view = (
 	new: { arg self, parent, sizerect, main_controller, ctrlname;
 		//var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
@@ -2071,15 +2012,7 @@
 			layout = HLayoutView.new(self.right_layout, Rect(0,0,self.right_layout.bounds.width, 40));
 			layout.background = Color.blue;
 
-			onoff = Button.new(layout, 30@30);
-			onoff.states = [
-				["On"],
-				["Off"],
-			];
-			onoff.value = ctrl.(("enable_"++name).asSymbol).model.val;
-			onoff.action = { arg but;
-				ctrl.(("enable_"++name).asSymbol).set_property(\value, but.value);
-			};
+			onoff = ~widget_onoff_button.(layout, 30@30, ctrl.(("enable_"++name).asSymbol));
 			//label = StaticText.new(layout, 120@20);
 			//label.string_(main_controller.get_arg(( name++"_spread" ).asSymbol).model.name);
 
@@ -2161,6 +2094,7 @@
 				if(kind == 0) {
 					self.body_layout.children[0].remove;
 					self.body = switch(idx,
+						0, { ~class_oscpanel_view.new(self.body_layout, self.body_size, main_controller) },
 						1, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_osc) },
 						2, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_filter) },
 						3, { ~class_voicing_view.new(self.body_layout, self.body_size, main_controller) },

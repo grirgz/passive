@@ -7,6 +7,7 @@
 - prise en charge du rangeslider dans les modulators
 - bug: explosion du son en modifiant certains parametres
 - bug: xrun avec le passive_fx pour raison inconnue
+- mettre les curve de curvebank entre -1 et 1
 
 // autres
 - deplacer load_preset_by_uname dans main_controller

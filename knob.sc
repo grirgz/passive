@@ -1470,3 +1470,14 @@ b.get(0, {|msg| msg.postln});
 ~load_curve_in_buffer.(b, ~funsig);
 b.plot;
 )
+
+
+
+f = "/home/ggz/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24/Misc - Artificial/Broken Bits.wav"
+~sig = ~load_sample_as_signal.(f)
+
+~sig[0.54 * ~sig.size]
+0.54 * ~sig.size
+
+~ss = Signal[0,1]
+~ss[0.4]
