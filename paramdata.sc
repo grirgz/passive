@@ -5,6 +5,19 @@
 //		y = sin(sqrt(x)/(x*2)).linlin(0,1,0,1);
 //		y;
 //	},
+
+	////////////// methods
+
+	get_keys: { arg self;
+		var keys;
+		self.debug("curvebank: get_keys");
+		keys = self.keys;
+		keys = keys - Set[\get_keys, \known, \name];
+		keys.asArray.sort;
+	},
+	
+	//////////////// curves
+
 	expsin: { arg x;
 		var y;
 		x = x % 1;
@@ -48,6 +61,9 @@
 		y = sin(x*2pi*4);
 		y;
 	},
+
+	// performer curves
+
 	line1: { arg x;
 		var y;
 		y = x;
@@ -57,10 +73,97 @@
 		var y;
 		y = 1-x;
 		y*2-1;
-	}
+	},
+	exp1: { arg x;
+		var y;
+		x = x % 1;
+		y = x**2;
+		y = y*2-1;
+		y;
+	},
+	negexp1: { arg x;
+		var y;
+		x = x % 1;
+		x = 1 - x;
+		y = x**2;
+		y = y*2-1;
+		y;
+	},
+	exp2: { arg x;
+		var y;
+		x = x % 1;
+		x = 1 - x;
+		y = x**2;
+		y = 0-y+1;
+		y = y*2-1;
+	},
+	negexp2: { arg x;
+		var y;
+		x = x % 1;
+		y = x**2;
+		y = 0-y+1;
+		y = y*2-1;
+	},
+	demisin2: { arg x;
+		var y;
+		x = x % 1;
+		x = 1-x;
+		y = sin(x*pi+(pi/2));
+	},
+	negdemisin2: { arg x;
+		var y;
+		x = x % 1;
+		y = sin(x*pi+(pi/2));
+	},
+	const: { arg x;
+		1
+	},
+	negsquare1: { arg x;
+		var y;
+		x = x % 1;
+		y = if(x<0.5) { 1 } { -1 };
+		y;
+	},
+	demisin: { arg x;
+		var y;
+		x = x % 1;
+		y = sin(x*pi);
+		y = y*2-1;
+	},
+
+	pic1: { arg x;
+		var y;
+		var xx;
+		var d = 1;
+		xx = x % (1/d);
+		xx = xx * d;
+		xx = 1 - xx;
+		y = xx ** 1.5 * (1+(sin(x*d*pi*0.7)/12));
+		y = y*2-1;
+	},
+	pic2: { arg x;
+		var y;
+		var xx;
+		var d = 2;
+		xx = x % (1/d);
+		xx = xx * d;
+		xx = 1 - xx;
+		y = xx ** 1.5 * (1+(sin(x*d*pi*0.7)/12));
+		y = y*2-1;
+	},
+	pic4: { arg x;
+		var y;
+		var xx;
+		var d = 4;
+		xx = x % (1/d);
+		xx = xx * d;
+		xx = 1 - xx;
+		y = xx ** 1.5 * (1+(sin(x*d*pi*0.7)/12));
+		y = y*2-1;
+	},
 
 );
-~curvebank.known = false;
+~curvebank.known = false; // FIXME: should be "know", is it required ? 
 
 ~passive_specs = (
 	// (minval, maxval, warp, step, default, units)
@@ -888,6 +991,7 @@
 			(
 				uname: (osc++"_steps1").asSymbol,
 				name: "Steps1",
+				range: [0,0.5],
 				indexes: [idx-1, \ampmod],
 				kind: \steps
 			),

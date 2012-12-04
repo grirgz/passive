@@ -37,8 +37,14 @@ Debug.enableDebug = true
 ~load_passive.();
 ~new_passive.();
 ~passive.load_preset_by_uname("default");
+~passive.make_gui;
 //~passive.build_synthdef;
 ~midiresp = ~passive.make_midi_responder
+
+)
+(
+~load_passive.();
+~passive.build_synthdef;
 
 )
 
@@ -68,12 +74,15 @@ Task {
 (
 
 ~load_passive.();
+~new_passive.();
 "fou".debug;
-~class_load_wavetable_dialog.new;
+//~class_load_wavetable_dialog.new;
 )
 
 ~preset = ~passive.save_preset
 ~passive.load_preset(~preset)
+
+~passive.modulation_manager.get_instr_modulation
 
 ~modman = ~preset[\modulation_manager]
 
@@ -81,6 +90,8 @@ Task {
 ~passive.get_arg(\macro1_control).model
 ~passive.get_arg(\modulator1_rate).model
 ~passive.get_arg(\vibrato_depth).model
+~passive.get_arg(\modulator1_kind).model
+~passive.modulation_manager.get_polarity([\mod, 3])
 
 ~passive.modulation_manager.get_source(\osc1_pitch, 0)
 ~passive.modulation_manager.get_instr_modulation
@@ -110,6 +121,9 @@ n[[\osc1_pitch, 0]] = 1
 ~passive.synthdef_args.keysValuesDo { arg key, val; val.debug(key)}
 ~passive.synthdef_args.getPairs
 ~passive.synthdef_ns_args[3][\voicing]
+~passive.synthdef_ns_args[2]
+~passive.synthdef_ns_args[4]
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1  ][1..9]
 ~pass
 ~passive.synthdef_ns_args.postcs
 ~passive.build_synthdef;

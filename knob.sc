@@ -1462,15 +1462,20 @@ b = Buffer.alloc(s, 512, 1)
 b.get(0, {|msg| msg.postln});
 (
 ~funsig =  { arg x;
-	var y;
-	x = x % 1;
-	y = sin(exp(x*2)*sin(x));
-	y;
+		var y;
+		var xx;
+		var d = 1;
+		xx = x % (1/d);
+		xx = xx * d;
+		xx = 1 - xx;
+		y = xx ** 1.5 * (1+(sin(x*d*pi*0.7)/12));
+
 };
 ~load_curve_in_buffer.(b, ~funsig);
 b.plot;
 )
 
+[1.1, 2.2].asInteger
 
 
 f = "/home/ggz/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24/Misc - Artificial/Broken Bits.wav"
@@ -1481,3 +1486,17 @@ f = "/home/ggz/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architect
 
 ~ss = Signal[0,1]
 ~ss[0.4]
+
+
+(
+ a = (
+ 	bla: { arg x;
+		x.debug("bla");
+	}
+
+	 );
+
+)
+a.bla(3)
+a.know = false
+a.keys

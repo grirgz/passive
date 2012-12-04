@@ -568,13 +568,13 @@
 		self.multislider_size = self.view_size.x @ (self.view_size.y - 70);
 		self.numstep = ctrl.(\steps1).get_numstep ?? 16;
 		self.stepper_layout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y));
-		self.rangeslider = self.make_rangeslider(self.stepper_layout);
+		self.rangeslider = self.make_rangeslider(self.stepper_layout, nil, ctrl.(\steps1));
 		self.numheader = self.make_numheader(self.stepper_layout);
 
 		self.multislider = self.make_multislider(self.stepper_layout, ctrl.(\steps_amp));
 		self.multislider.action = { arg ms;
 			"action bordel!!!!".debug;
-			ctrl.(\steps_amp).set_property(\value, ms.value, \false);
+			ctrl.(\steps_amp).set_property(\value, ms.value, false);
 		};
 
 		self.glidegrid = self.make_boxgrid(self.stepper_layout, ctrl.(\steps1));
@@ -608,7 +608,7 @@
 		multislider;
 	},
 
-	make_rangeslider: { arg self, parent, size;
+	make_rangeslider: { arg self, parent, size, ctrl;
 		var rangeslider;
 		size = size ?? (self.view_size.x@10);
 
@@ -616,6 +616,14 @@
 		    .lo_(0.0)
 		    .hi_(0.5);
 		rangeslider.step = 1/self.numstep;
+		rangeslider.action = { arg view;
+			[view.lo, view.hi].debug("rangeslider: action");
+			if(view.range == 0) {
+				ctrl.set_property(\range, [0,1], false);
+			} {
+				ctrl.set_property(\range, [view.lo, view.hi], false);
+			}
+		};
 		//rangeslider.step = 0.1;
 		rangeslider;
 
@@ -667,6 +675,10 @@
 					self.ampgrid.setNodeStates = [val];
 				};
 
+			},
+			\range, {
+				self.rangeslider.lo = val[0];
+				self.rangeslider.hi = val[1];
 			}
 		)
 	}
@@ -682,7 +694,7 @@
 		self.view_size = size ?? (512@300);
 		self.numstep = ctrl.(\steps1).get_numstep ?? 16;
 		self.stepper_layout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y));
-		self.rangeslider = self.make_rangeslider(self.stepper_layout);
+		self.rangeslider = self.make_rangeslider(self.stepper_layout, nil, ctrl.(\steps1));
 		self.numheader = self.make_numheader(self.stepper_layout);
 		self.curvegraph1 = ~class_curvegraph_view.new(self.stepper_layout, self.view_size.x@80, ctrl.(\perfcurve1), curve_edit);
 		self.curvegraph2 = ~class_curvegraph_view.new(self.stepper_layout, self.view_size.x@80, ctrl.(\perfcurve2), curve_edit);
@@ -754,7 +766,7 @@
 
 	set_right_panel: { arg self, kind, force=false;
 		var curvebank = ~curvebank; // TODO: use ctrl.get_curvebank
-		var curvelist = curvebank.keys.asList;
+		var curvelist = curvebank[\get_keys].(curvebank);
 	
 		if(self.kind == \performer or:{force}) {
 
@@ -1121,7 +1133,7 @@
 		};
 		self.text.mouseUpAction={ arg view, x, y, modifier, buttonNumber, clickCount;
 			buttonNumber.debug("class_mod_slot: mouseUpAction: buttonNumber");
-			self.update_action;
+			self.update_action; // function set by outside
 		};
 		self.text.mouseMoveAction = { arg view, x, y;
 			var nx, ro;
@@ -1129,7 +1141,7 @@
 			ro = ((nx/100) + self.val_offset).clip(-0.999, 0.999 );
 			[x, y, nx, ro].debug("move");
 			self.val = ro;
-			self.action;
+			self.action; // function set by outside
 		};
 
 		self.text.receiveDragHandler = {
@@ -1174,6 +1186,7 @@
 				if(val[1].isNil) {
 					slot.string = "";
 				} {
+					//FIXME: use other function to avoid code redondance
 					slot.string = val[2];
 					slot.stringColor = ~map_modulator_to_color.(val[1]);
 				}
@@ -1307,8 +1320,14 @@
 				if(val[1].isNil) {
 					//slot.stringColor = Color.white;
 					slot.string = "";
+					self.slots[val[0]].val = 0;
 				} {
-					slot.string = (val[2]+1).asString;
+					self.knob.set_polarity(val[0], self.controller.main_controller.modulation_manager.get_polarity([val[1], val[2]]));
+					if(val[2].isInteger) {
+						slot.string = (val[2]+1).asString;
+					} {
+						slot.string = val[2].asString;
+					};
 					slot.stringColor = ~map_modulator_to_color.(val[1]);
 				};
 				//slot.string = "A";
@@ -2153,10 +2172,10 @@
 
 		"MACRO".debug;
 
-		makebut = { arg parent, name;
+		makebut = { arg parent, name, modkind;
 			var text;
 			text = DragSource.new(parent, Rect(0,0,parent.bounds.width/2,10));
-			text.object = [\midi, \velocity];
+			text.object = [\special, modkind];
 			//text.background = Color.yellow;
 			text.string = name;
 		};
@@ -2204,11 +2223,11 @@
 		self.keyboard_layout = VLayoutView.new(self.layout, Rect(0,0,100,100));
 		bounds = self.keyboard_layout.bounds;
 		self.keyboard_sublayout1 = HLayoutView.new(self.keyboard_layout, Rect(0,0,bounds.width,bounds.height/2));
-		makebut.(self.keyboard_sublayout1, "KTr");
-		makebut.(self.keyboard_sublayout1, "Vel");
+		makebut.(self.keyboard_sublayout1, "KTr", \ktr);
+		makebut.(self.keyboard_sublayout1, "Vel", \velocity);
 		self.keyboard_sublayout2 = HLayoutView.new(self.keyboard_layout, Rect(0,0,bounds.width,bounds.height/2));
-		makebut.(self.keyboard_sublayout2, "AT");
-		makebut.(self.keyboard_sublayout2, "TrR");
+		makebut.(self.keyboard_sublayout2, "AT", \at);
+		makebut.(self.keyboard_sublayout2, "TrR", \trr);
 
 		bounds = self.layout.bounds;
 		self.macro_layout = VLayoutView.new(self.layout, Rect(0,0,bounds.width-self.keyboard_layout.bounds.width-60,bounds.height));
@@ -2253,7 +2272,8 @@
 		var curveview;
 		self = self.deepCopy;
 
-		self.layout = VLayoutView.new(parent, size.asRect);
+		self.slayout = ScrollView.new(parent, size.asRect);
+		self.layout = VLayoutView.new(self.slayout, Rect(0,0,size.asRect.width,50 * curvelist.clump(4).size + 50));
 
 		curvelist.clump(4).do { arg curverow;
 			line_layout = HLayoutView.new(self.layout, Rect(0,0,size.x, 50));

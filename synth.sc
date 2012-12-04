@@ -16,6 +16,7 @@ Instr(\passive, { arg
 		////// master,
 
 		freq=200,
+		velocity,
 		amp=0.1,
 		pan=0,
 		spread=1,
@@ -198,6 +199,7 @@ Instr(\passive, { arg
 		modulator4_glidefade,
 		modulator4_rate
 	;
+	var rand_number;
 
 	var ou, oudb;
 	var freq1, freq2, freq3;
@@ -216,6 +218,9 @@ Instr(\passive, { arg
 	var feedback, insert_effect, insert_feedback, onoff, bypass;
 	var bypass_osc, bypass_dest, bypass_signal = 0;
 	var build_spread_array, build_freq_spread_array;
+
+
+	rand_number = Rand(0,1);
 
 	//var kinds;
 
@@ -247,12 +252,23 @@ Instr(\passive, { arg
 			sigmod = 0;
 			normsig = mod[argname][\spec].unmap(sig);
 			3.do { arg index;
-				if(mod[argname][index].notNil and: { modarray[ mod[argname][index][\source] ].notNil }) {
+				if(mod[argname][index].notNil 
+						and: { modarray[ mod[argname][index][\source] ].notNil }
+						and: { mod[argname][index][\mute] != false }
+				) {
 					[argname, index].debug("modulate");
 					mod[argname][index].debug("mod");
 					range = mod[argname][index][\norm_range] ?? 0;
 					range.debug("range");
-					sigmod = sigmod + (modarray[ mod[argname][index][\source] ] * range)
+					sigmod = sigmod + (range * switch(mod[argname][index][\special],
+						\ktr, { (freq.cpsmidi / 127) },
+						\at, {  }, // TODO
+						\trr, { rand_number },
+						\velocity, { velocity.debug("velocity") },
+						{
+							modarray[ mod[argname][index][\source] ]
+						}
+					));
 				};
 			};
 			sig = mod[argname][\spec].map(normsig + (sigmod));
@@ -299,7 +315,11 @@ Instr(\passive, { arg
 
 	insert_feedback = { arg in, pos;
 		if(routing[\feedback] == pos) {
-			in = in.sum;
+			if(in.class == Array) {
+				in = in.sum;
+			} {
+				in;
+			};
 			in = insert_effect.(in, \in_feedback);
 			LocalOut.ar(in);
 		}
@@ -1100,7 +1120,7 @@ Instr(\passive, { arg
 	//////// Filters
 	debug("------ passive: filters");
 
-	f1 = osc1_f1 + osc2_f1 + osc3_f1 + noise_f1 + feedback_f1;
+	f1 = osc1_f1 + osc2_f1 + osc3_f1 + noise_f1 + feedback_f1 + DC.ar(0);
 	f1.debug("0 f1");
 	f1 = insert_effect.(f1, \before_filter1);
 	f1.debug("1 f1");
@@ -1164,11 +1184,11 @@ Instr(\passive, { arg
 	ou.debug("---------- final splay ou");
 
 	//bypass_signal.poll;
-	bypass_signal = DC.ar(0);
-//	bypass_signal = bypass_signal + DC.ar(0);
-//	bypass_signal = bypass_signal * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
-//	bypass_signal = Splay.ar(bypass_signal!2, spread, 1, pan);
-//	bypass_signal = bypass_signal * bypass_amp;
+	//bypass_signal = DC.ar(0) ! 2;
+	bypass_signal = bypass_signal + DC.ar(0);
+	bypass_signal = bypass_signal * EnvGen.ar(Env.adsr(0.01,0.1,0.8,0.1),gate,doneAction:2);
+	bypass_signal = Splay.ar(bypass_signal!2, spread, 1, pan);
+	bypass_signal = bypass_signal * bypass_amp;
 	//ou = Pan2.ar(ou, pan, 1);
 
 	insert_feedback.(ou, \after_pan);
@@ -1373,7 +1393,7 @@ Instr(\passive_fx, { arg
 
 	ou = in;
 
-	ou = ou + bypass_dest.(\before_fx1);
+	ou = ou + bypass_dest.(\before_fx1).debug("bypass_dest: before_fx1");
 
 	ou = bypass.(ou, \fx1, {
 		Instr(\p_effect).value((kind:kinds[\fx1], in:ou, arg1:fx1_arg1, arg2:fx1_arg2, arg3:fx1_arg3, arg4:fx1_arg4));
@@ -1722,20 +1742,27 @@ Instr(\p_lfo, { arg internal_mod, gate=1, amp, rate, xfade, phase, curve1, curve
 Instr(\p_stepper, { arg steps, amp, rate, amp_mod, glide;
 	var seq, trig, amp_seq, glide_seq;
 	var sig;
+	var rangelo, rangehi;
 	steps = steps ?? (
 		amp: [1.0, 0.5, 0.0, 1.0],
 		ampmod: [1,0,0,1],
 		glidefade: [1,0,1,0],
 	);
+	rangelo = (steps[\range][0] * steps[\amp].size).asInteger;
+	rangelo.dump.debug("p_stepper: rangelo");
+	rangehi = (steps[\range][1] * (steps[\amp].size-1)).asInteger;
+	rangehi.dump.debug("p_stepper: rangehi");
 
 	trig = Impulse.ar(rate);
 
-	seq = Dseq(steps[\amp],inf);
+	seq = Dseq(steps[\amp][rangelo..rangehi],inf);
 
-	glide_seq = Dseq(steps[\glidefade],inf);
+	"bla".debug;
+
+	glide_seq = Dseq(steps[\glidefade][rangelo..rangehi],inf);
 	glide = Demand.ar(trig, 0, glide_seq) * glide;
 
-	amp_seq = Dseq(steps[\ampmod],inf);
+	amp_seq = Dseq(steps[\ampmod][rangelo..rangehi],inf);
 	amp_mod = Select.ar(Demand.ar(trig, 0, amp_seq), [DC.ar(1), K2A.ar(amp_mod)]);
 
 	sig = Demand.ar(trig, 0, seq);
@@ -1747,6 +1774,7 @@ Instr(\p_stepper, { arg steps, amp, rate, amp_mod, glide;
 Instr(\p_performer, { arg steps, amp, rate, amp_mod, xfade, curve1, curve2;
 	var sig1, sig2, sig;
 	var trig, amp_seq, xfade_seq;
+	var rangelo, rangehi;
 	var scale1 = BufFrames.kr(curve1)/SampleRate.ir;
 	var scale2 = BufFrames.kr(curve2)/SampleRate.ir;
 
@@ -1755,17 +1783,21 @@ Instr(\p_performer, { arg steps, amp, rate, amp_mod, xfade, curve1, curve2;
 		ampmod: [1,0,0,1],
 		glidefade: [1,0,1,0],
 	);
+	rangelo = (steps[\range][0] * steps[\ampmod].size).asInteger;
+	rangelo.dump.debug("p_performer: rangelo");
+	rangehi = (steps[\range][1] * (steps[\ampmod].size -1)).asInteger;
+	rangehi.dump.debug("p_performer: rangehi");
 
 	trig = Impulse.ar(rate);
 
-	amp_seq = Dseq(steps[\ampmod],inf);
+	amp_seq = Dseq(steps[\ampmod][rangelo..rangehi],inf);
 	amp_mod = Select.ar(Demand.ar(trig, 0, amp_seq), [DC.ar(1), K2A.ar(amp_mod)]);
 
-	xfade_seq = Dseq(steps[\glidefade],inf);
+	xfade_seq = Dseq(steps[\glidefade][rangelo..rangehi],inf);
 	xfade = xfade * Demand.ar(trig, 0, xfade_seq);
 
-	sig1 = BufRd.ar(1, curve1, Phasor.ar(0, rate*scale1, 0, BufFrames.kr(curve1)));
-	sig2 = BufRd.ar(1, curve2, Phasor.ar(0, rate*scale2, 0, BufFrames.kr(curve2)));
+	sig1 = BufRd.ar(1, curve1, Phasor.ar(0, rate*scale1, steps[\range][0]*BufFrames.kr(curve1), (steps[\range][1]*BufFrames.kr(curve1))-1));
+	sig2 = BufRd.ar(1, curve2, Phasor.ar(0, rate*scale2, steps[\range][0]*BufFrames.kr(curve1), (steps[\range][1]*BufFrames.kr(curve2))-1));
 
 	sig = SelectX.ar(xfade, [sig2, sig1]);
 	sig = sig * amp_mod * amp;

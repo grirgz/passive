@@ -242,8 +242,7 @@
 	},
 
 	get_menu_items_names: { arg self;
-		// TODO: reject \name, write a generic function to get sigfuncs without known and name
-		self.get_curvebank.keys.asList.reject(_ == \known).sort ++ [\custom];
+		self.get_curvebank.get_keys(self.get_curvebank) ++ [\custom];
 	},
 
 	get_curvebank: { arg self;
@@ -424,7 +423,7 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		self.menu_items = controller.get_curvebank.keys.asArray.sort.reject{ arg x; x == \known } ++ [\custom];
+		self.menu_items = controller.get_curvebank[\get_keys].(controller.get_curvebank) ++ [\custom];
 		self.model.putAll(paramdata);
 		self.buffer = Buffer.alloc(s, 1024, 1);
 		controller.register_buffer(self.buffer, self.model.uname);
@@ -766,6 +765,10 @@
 			\value, { 
 				self.model.val = val;
 				self.main_controller.update_arg(self.model.uname);
+			},
+			\range, { 
+				self.model.range = val;
+				self.main_controller.update_arg(self.model.uname);
 			}
 		);
 		if(update) {
@@ -776,6 +779,9 @@
 	refresh: { arg self;
 		"REFRESH++".debug;
 		self.changed(\set_property, \value, self.model.val);
+		if(self.model.range.notNil) {
+			self.changed(\set_property, \range, self.model.range);
+		}
 	},
 
 	get_val: { arg self;
@@ -1418,6 +1424,22 @@
 		};
 	},
 
+	get_polarity: { arg self, src;
+		var ctrl, ret = \unipolar;
+		if(src[0] == \mod) {
+			("modulator%_kind".format(src[1]-3)).debug("get_polarity");
+			ctrl = self.main_controller.get_arg("modulator%_kind".format(src[1]-3).asSymbol);
+			if(ctrl.notNil) {
+				["ctrl not nil", ctrl.model.val_uname].debug;
+				if(ctrl.model.val_uname == \lfo) {
+					ret = \bipolar
+				}
+			}
+		  
+		};
+		ret;
+	},
+
 	get_instr_modulation: { arg self;
 		var mod = Dictionary.new;
 		self.slot_dict.debug("modulation_manager: get_instr_modulation: slot_dict");
@@ -1431,7 +1453,7 @@
 			var ret_dest;
 			# uname, idx = dest;
 			# srckind, srcidx = source;
-			if(srckind == \mod or: { srckind == \internal }) {
+			if([\mod, \special, \internal].includes(srckind)) {
 				[dest, source].debug("srckindmod");
 				ret_source = srcidx;
 				if(self.modulation_dict[dest].notNil) {
@@ -1481,7 +1503,12 @@
 					norm_range: ret_norm_range,
 				);
 				if(srckind == \internal) {
+					// dest should be in slot_idx, no ?
 					mod[uname][\dest] = ret_dest;
+				};
+				if(srckind == \special) {
+					mod[uname][idx][\special] = ret_source;
+					mod[uname][idx][\source] = 0;
 				};
 				mod[uname][\spec] = ret_spec;
 			}
@@ -1523,12 +1550,16 @@
 			self.noffr = NoteOffResponder { arg src, chan, num, veloc;
 				var note;
 				[self.livebook[[chan,num]], [src, chan, num, veloc]].debug("note off");
-				if((Process.elapsedTime - self.livebook[[chan,num]].start_time)  < 0.02) {
-					(Process.elapsedTime - self.livebook[[chan,num]].start_time ).debug("make_midi_note_responder: noff responder: kill node");
-					self.livebook[[chan,num]].synth_node.free;
-				};
-				self.livebook[[chan,num]].release_node;
-				self.livebook[[chan,num]] = nil;
+				if(self.livebook[[chan,num]].notNil) {
+					if((Process.elapsedTime - self.livebook[[chan,num]].start_time)  < 0.02) {
+						(Process.elapsedTime - self.livebook[[chan,num]].start_time ).debug("make_midi_note_responder: noff responder: kill node");
+						self.livebook[[chan,num]].synth_node.free;
+					};
+					self.livebook[[chan,num]].release_node;
+					self.livebook[[chan,num]] = nil;
+				} {
+					"make_midi_note_responder: No note to release".debug;
+				}
 
 			};
 		},
@@ -1657,6 +1688,9 @@
 				\steps, {
 					if(args[\steps][val.model.indexes[0]].isNil) {
 						args[\steps][val.model.indexes[0]] = ();
+					};
+					if(val.model.range.notNil) {
+						args[\steps][val.model.indexes[0]][\range] = val.model.range;
 					};
 					args[\steps][val.model.indexes[0]][val.model.indexes[1]] = val.model.val;
 				},

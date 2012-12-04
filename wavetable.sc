@@ -137,7 +137,7 @@
 
 	files: { arg self;
 		if(self.kind == \folder) {
-			self.bank.keys.reject{ arg x; [\name, \known].includes(x) }.asArray.sort.collect { arg name;
+			self.bank[\get_keys].(self.bank).collect { arg name;
 				~class_wavetable_sigfunc_file.new(self.bank, name);
 			}
 		} {
@@ -320,16 +320,14 @@
 		self.but_apply = Button.new(self.right_layout, Rect(0,0,80,20));
 		self.but_apply.string = "Apply";
 		self.but_apply.action = {
-			if(single and: {self.displayed_file.notNil}) {
+			if((selectedlist.size < 1) and: {self.displayed_file.notNil}) {
 				selectedlist = [self.displayed_file];
-			};
-			if(selectedlist.size > 0) {
-				apply_action.(selectedlist);
-				self.apply_done = true;
-				self.window.close;
 			} {
 				// noop
-			}
+			};
+			apply_action.(selectedlist);
+			self.apply_done = true;
+			self.window.close;
 		};
 
 		//self.pack_layout = VLayoutView.new(self.layout, Rect(0,0,300,400));
