@@ -31,10 +31,39 @@
 	val;
 };
 
-~keycodes = (
-	enter:10,
-	escape: 27
-);
+~keycodes = if(GUI.current == QtGUI) {
+	(
+		enter:104,
+		escape: 9,
+		key_c: 54,
+		key_x: 53,
+		key_v: 55,
+		key_n: 57,
+		left_arrow: 113,
+		right_arrow: 114,
+		up_arrow: 111,
+		down_arrow: 116,
+		left_click: 0,
+		right_click: 1,
+		middle_click: 2,
+	
+	);
+} {
+	(
+		enter:10,
+		escape: 27,
+		key_c: 67,
+		key_x: 88,
+		key_v: 86,
+		left_arrow: 37,
+		right_arrow: 39,
+		up_arrow: 38,
+		down_arrow: 40,
+		left_click: 1,
+		right_click: 3,
+		middle_click: 2,
+	)
+};
 
 ~map_modulator_to_color = { arg modkind;
 	switch(modkind,
@@ -62,7 +91,7 @@
 		self.layout = VLayoutView.new(self.window, Rect(0,0,300,400));
 
 		self.window.view.keyDownAction = { arg view, char, modifiers, unicode, keycode;
-			"class_save_preset_dialog: keyDownAction".debug;
+			//"class_save_preset_dialog: keyDownAction".debug;
 			if(keycode == ~keycodes.escape) {
 				self.window.close;
 			};
@@ -83,7 +112,7 @@
 		};
 
 		self.but_apply = Button.new(self.layout, Rect(0,0,80,20));
-		self.but_apply.string = "Apply";
+		self.but_apply.states = [["Apply"]];
 		self.but_apply.action = {
 			if(self.preset_name_field.string != "") {
 				apply_action.(self.preset_name_field.string);
@@ -126,7 +155,7 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_curvegraph_view: set_property");
+		//[name, val].debug("class_curvegraph_view: set_property");
 		switch(name,
 			\curve, { 
 				self.curves = val;
@@ -154,7 +183,7 @@
 			nx = (x/size.x).trunc(1 / self.numstep)* self.numstep;
 			ox = nx.clip( 0, self.numstep );
 			oy = ny.clip( 0, 0.999 );
-			[x,y, nx, ny, ox, oy].debug("x,y, nx, ny, ox, oy");
+			//[x,y, nx, ny, ox, oy].debug("x,y, nx, ny, ox, oy");
 			
 			if(self.curve_edit.change_curve_mode) {
 				self.curves.wrapPut(ox, self.curve_edit.curve_shape);
@@ -173,7 +202,7 @@
 			var draw_band;
 			var numstep = self.numstep;
 			var ampmods = self.ampmods;
-			//"--------------begin draw".debug;
+			////"--------------begin draw".debug;
 
 			Pen.color = Color.white;
 			Pen.width = 2;
@@ -189,7 +218,7 @@
 				x = 0;
 				y = scalefun.(x, y);
 				Pen.lineTo(offset@y);
-				scale.x.do { arg x;
+				(scale.x-1).do { arg x;
 					x = x+1;
 					y = scalefun.(x, y);
 					//x = x*scale.x;
@@ -218,7 +247,11 @@
 				Pen.color = Color.grey(0.5);
 				Pen.width = 1;
 				numstep.do { arg offset;
-					Pen.lineDash = [0.5,1]*5;
+					if(GUI.current == QtGUI) {
+						//Pen.lineDash = [0.1,0.5]
+					} {
+						Pen.lineDash = [0.5,1]*5;
+					};
 					//"-------begin sep".debug;
 					offset = (offset+1)*(size.x/numstep);
 					Pen.line(offset@0, offset@size.y);
@@ -246,13 +279,13 @@
 		self.phase = 0;
 		self.graph_size = size;
 		self.curvebank = curvebank;
-		self.curvebank.debug("class_simple_curvegraph_view: curvebank");
+		//self.curvebank.debug("class_simple_curvegraph_view: curvebank");
 		self.curvegraph = self.make_curvegraph(parent, size);
 
 		self.curvegraph.mouseDownAction =  { arg view, x, y;
 			curve_edit.curve_shape = curve;
 			curve_edit.change_curve_mode = true;
-			curve_edit.debug("class_mini_curvegraph_view: mousedown");
+			//curve_edit.debug("class_mini_curvegraph_view: mousedown");
 		};
 		self.curvegraph.mouseMoveAction =  { arg view, x, y;
 			// noop
@@ -267,17 +300,19 @@
 	parent: ~class_curvegraph_view,
 	//unipolar: false, 
 
+	//new: { arg self, parent, size, ctrl, ctrl_phase; //,curvebank, curve;
 	new: { arg self, parent, size, ctrl; //,curvebank, curve;
 		self = self.deepCopy;
 		size = size ?? (300@300);
 		self.numstep = 1;
 		self.controller = ctrl;
+		//self.phase_controller = ctrl_phase;
 		self.ampmods = 1 ! self.numstep;
 		self.curves = [\sin1];
 		self.phase = 0;
 		self.graph_size = size;
 		self.curvebank = ctrl.get_curvebank ?? ~curvebank;
-		self.curvebank.debug("class_simple_curvegraph_view: curvebank");
+		//self.curvebank.debug("class_simple_curvegraph_view: curvebank");
 		self.curvegraph = self.make_curvegraph(parent, size);
 
 		self.curvegraph.mouseDownAction =  { arg view, x, y;
@@ -290,14 +325,16 @@
 			var ro, nx;
 			//[x, x - ~x, ~x, ro].debug("x, x-~x, ~x");
 			nx = x - self.x_offset;
-			"before doubleclip".debug;
+			//"before doubleclip".debug;
 			ro = ((nx/100) + self.value_offset).clip( 0, 0.999 );
-			"after doubleclip".debug;
+			//"after doubleclip".debug;
 			
 			self.phase = 1-ro;
+			//self.phase_controller.set_property(\value, self.phase, false);
 			self.curvegraph.refresh;
 		};
 		~make_class_responder.(self, self.curvegraph, self.controller, [ \set_property ]);
+		//~make_class_responder.(self, self.curvegraph, self.phase_controller, [ \set_property ]);
 
 		self;
 	},
@@ -307,12 +344,32 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_simple_curvegraph_view: set_property");
+		//[name, val].debug("class_simple_curvegraph_view: set_property");
+		//switch(controller, 
+		//	self.phase_controller, {
+		//		switch(name,
+		//			\value, { 
+		//				self.phase = val;
+		//				self.curvegraph.refresh;
+		//			}
+		//		)
+		//	
+		//	},
+		//	self.controller, {
+		//		switch(name,
+		//			\curve, { 
+		//				self.curves = [val];
+		//				self.curvegraph.refresh;
+		//			},
+		//		)
+		//	}
+		//
+		//);
 		switch(name,
 			\curve, { 
 				self.curves = [val];
 				self.curvegraph.refresh;
-			}
+			},
 		)
 	},
 
@@ -369,7 +426,7 @@
 
 	set_property: { arg self, controller, msg, name, val;
 		var idx;
-		[name, val].debug("class_curve_select_view: set_property");
+		//[name, val].debug("class_curve_select_view: set_property");
 		switch(name,
 			\curve, { 
 				idx = self.buttons_uname.indexOf(val);
@@ -421,6 +478,7 @@
 
 		self.make_env( parent, size);
 		self.env_view.setEnv( Env.perc(self.attack_time, self.release_time, 1, 0) );
+		self.env_view.editable = false;
 
 		~make_class_responder.(self, self.env_view, at_controller, [ \set_property ]);
 		~make_class_responder.(self, self.env_view, rt_controller, [ \set_property ]);
@@ -429,7 +487,7 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_ar_env_view: set_property");
+		//[name, val].debug("class_ar_env_view: set_property");
 		switch(name,
 			\value, { 
 				if(controller === self.at_controller) {
@@ -449,11 +507,12 @@
 	new: { arg self, parent, size, idx, main_controller;
 		var makectrl;
 		self = self.deepCopy;
-		idx.debug("new class_dadsr_env_view");
+		//idx.debug("new class_dadsr_env_view");
 
 		self.make_env( parent, size);
 		self.responder = Dictionary.new;
 		self.val_dict = Dictionary.new;
+		self.env_view.editable = false;
 
 		makectrl = { arg name;
 			var ctrl;
@@ -461,7 +520,7 @@
 			self.responder[name] = {
 				self.val_dict[name] = ctrl.get_val;
 			};
-			[name, ctrl.get_val].debug("class_dadsr_env_view: makectrl: get_val");
+			//[name, ctrl.get_val].debug("class_dadsr_env_view: makectrl: get_val");
 			self.val_dict[name] = ctrl.get_val;
 			~make_class_responder.(self, self.env_view, ctrl, [ \set_property ], false);
 		};
@@ -470,19 +529,19 @@
 			makectrl.(name);
 		};
 
-		idx.debug("end new class_dadsr_env_view");
+		//idx.debug("end new class_dadsr_env_view");
 
 		self;
 	},
 
 	set_property: { arg self, controller, msg, name, val;
 		var uname_key;
-		[name, val].debug("class_dadsr_env_view: set_property");
+		//[name, val].debug("class_dadsr_env_view: set_property");
 		switch(name,
 			\value, { 
 				uname_key = controller.model.uname.asString.drop("env1_".size).asSymbol;
 				self.responder[uname_key].value;
-				[controller.model.uname, uname_key, self.val_dict].debug("class_dadsr_env_view: set_property: val_dict");
+				//[controller.model.uname, uname_key, self.val_dict].debug("class_dadsr_env_view: set_property: val_dict");
 				self.env_view.setEnv( 
 					Env.dadsr(
 						self.val_dict[\delay_time],
@@ -496,7 +555,7 @@
 				);
 			}
 		);
-		[name, val].debug("end class_dadsr_env_view: set_property");
+		//[name, val].debug("end class_dadsr_env_view: set_property");
 	}
 
 );
@@ -506,9 +565,16 @@
 	new: { arg self, parent, size, rate_controller, amp_controller;
 		self = self.deepCopy;
 		self.view_size = size ?? (112@100);
-		self.layout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y));
-		self.rate_knob = ~class_pknob_view.new(self.layout, self.view_size.x@(self.view_size.y/2), rate_controller);
-		self.amp_knob = ~class_pknob_view.new(self.layout, self.view_size.x@(self.view_size.y/2), amp_controller);
+		self.layout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y/4));
+		//self.mlayout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,self.view_size.y/4));
+		//self.mlayout = VLayoutView.new(parent, Rect(0,0,self.view_size.x,40));
+		self.rate_knob = ~class_pknob_view.new(self.layout, (self.view_size.x/2)@(self.view_size.y/4), rate_controller);
+		self.amp_knob = ~class_pknob_view.new(self.layout, (self.view_size.x/2)@(self.view_size.y/4), amp_controller);
+
+		//self.layout = VLayoutView.new(self.mlayout, Rect(0,0,self.view_size.x,100));
+		//self.rate_knob = ~class_pknob_view.new(self.layout, (self.view_size.x/2)@20, rate_controller, 20@45);
+		//self.layout = VLayoutView.new(self.mlayout, Rect(0,0,self.view_size.x,100));
+		//self.amp_knob = ~class_pknob_view.new(self.layout, (self.view_size.x/2)@20, amp_controller, 20@45);
 		self;
 	}
 );
@@ -524,23 +590,25 @@
 		//frame_size = (812@100);
 		block_size = 140@((frame_size.y/2)-5);
 		self.layout = HLayoutView.new(parent, Rect(0,0,frame_size.x,frame_size.y));
-		"prapri1".debug;
+		//"prapri1".debug;
 
-		self.rateamp = ~class_rateamp_frame.new(self.layout, (100@frame_size.y), ctrl.(\rate), ctrl.(\amp));
+		self.rateamp = ~class_rateamp_frame.new(self.layout, (100@(frame_size.y-20)), ctrl.(\rate), ctrl.(\amp));
 		self.slider1 = ~class_pslider_view.new(self.layout, nil, ctrl.(\glidefade));
 
-		"prapri2".debug;
+		//"prapri2".debug;
 		self.curve_layout = VLayoutView.new(self.layout, Rect(0,0,block_size.x,frame_size.y));
-		[index, ctrl.(\curve1)].debug("class_lfo_frame: ctrl curve1");
+		//[index, ctrl.(\curve1)].debug("class_lfo_frame: ctrl curve1");
+		//self.curve1 = ~class_simple_curvegraph_view.new(self.curve_layout, block_size, ctrl.(\curve1), ctrl.(\phase1));
+		//self.curve2 = ~class_simple_curvegraph_view.new(self.curve_layout, block_size, ctrl.(\curve2), ctrl.(\phase2));
 		self.curve1 = ~class_simple_curvegraph_view.new(self.curve_layout, block_size, ctrl.(\curve1));
 		self.curve2 = ~class_simple_curvegraph_view.new(self.curve_layout, block_size, ctrl.(\curve2));
 
-		"prapri3".debug;
+		//"prapri3".debug;
 		self.curve_select_layout = VLayoutView.new(self.layout, Rect(0,0,block_size.x*2,frame_size.y));
 
 		self.curve_select1 = ~class_curve_select_view.new(self.curve_select_layout, block_size, ctrl.(\curve1));
 		self.curve_select2 = ~class_curve_select_view.new(self.curve_select_layout, block_size, ctrl.(\curve2));
-		"prapri4".debug;
+		//"prapri4".debug;
 
 		self.int_env = ~class_internal_env.new(self.layout, block_size.asRect, ctrl.(\env_attack), ctrl.(\env_decay), index);
 
@@ -573,7 +641,7 @@
 
 		self.multislider = self.make_multislider(self.stepper_layout, ctrl.(\steps_amp));
 		self.multislider.action = { arg ms;
-			"action bordel!!!!".debug;
+			//"action bordel!!!!".debug;
 			ctrl.(\steps_amp).set_property(\value, ms.value, false);
 		};
 
@@ -593,7 +661,7 @@
 		size = self.numstep ?? 16;
 
 		multislider = MultiSliderView(parent, Rect(0, 00, self.multislider_size.x, self.multislider_size.y));   
-		controller.get_val.debug("class_stepper_view: controller.get_val");
+		//controller.get_val.debug("class_stepper_view: controller.get_val");
 		multislider.value_(controller.get_val);
 		multislider.isFilled_(true); // width in pixels of each stick
 		multislider.drawRects = true;
@@ -617,7 +685,12 @@
 		    .hi_(0.5);
 		rangeslider.step = 1/self.numstep;
 		rangeslider.action = { arg view;
-			[view.lo, view.hi].debug("rangeslider: action");
+			//[view.lo, view.hi].debug("rangeslider: action");
+			if(GUI.current == QtGUI) { // bug with rangeslider.step in Qt
+				view.lo = view.lo.round(1/self.numstep);
+				view.hi = view.hi.round(1/self.numstep);
+				//view.range.debug("--------------------------range");
+			};
 			if(view.range == 0) {
 				ctrl.set_property(\range, [0,1], false);
 			} {
@@ -632,14 +705,25 @@
 	make_numheader: { arg self, parent, size;
 		var layout;
 		var text;
+		var boxgrid;
 		size = size ?? (self.view_size.x@15);
-		layout = HLayoutView.new(parent, Rect(0,0,size.x,size.y));
-		self.numstep.do { arg idx;
-			idx = idx+1;
-			text = StaticText.new(layout, Rect(0,0,size.x/self.numstep-4,size.y));
-			text.string = "  " ++ idx.asString;
-			text.background = Color.gray(0.5);
+
+		boxgrid = BoxGrid.new(parent, bounds: Rect(0,0,size.x, size.y), columns: self.numstep, rows: 1);
+
+		boxgrid.setTrailDrag_(true, true);
+		boxgrid.setNodeBorder_(0);
+		boxgrid.setNodeStates = [1!self.numstep];
+		boxgrid.setFillColor = Color.clear;
+		self.numstep.do { arg x;
+			boxgrid.setNodeString_(x, 0, (x+1).asString);
 		};
+		//layout = HLayoutView.new(parent, Rect(0,0,size.x,size.y));
+		//self.numstep.do { arg idx;
+		//	idx = idx+1;
+		//	text = StaticText.new(layout, Rect(0,0,size.x/self.numstep-4,size.y));
+		//	text.string = "  " ++ idx.asString;
+		//	text.background = Color.gray(0.5);
+		//};
 
 	},
 
@@ -650,8 +734,11 @@
 
 		boxgrid.setTrailDrag_(true, true);
 		boxgrid.setNodeBorder_(2);
+		//self.numstep.do { arg x;
+			//boxgrid.setNodeString_(x, 0, (x+1).asString);
+		//};
 		boxgrid.nodeDownAction = { arg nodeloc;
-			controller.set_property(\value, boxgrid.getNodeStates[0].debug("class_stepper_view: make_boxgrid: node states"), false);
+			controller.set_property(\value, boxgrid.getNodeStates[0], false);
 		};
 		boxgrid;
 	},
@@ -659,19 +746,19 @@
 	//////////
 
 	set_property: { arg self, controller, msg, name, val;
-		[controller.model.uname, self.ctrl(\steps1), name, val].debug("class_stepper_view: set_property");
+		//[controller.model.uname, self.ctrl(\steps1), name, val].debug("class_stepper_view: set_property");
 		switch(name,
 			\value, { 
 				if(controller == self.ctrl(\steps_amp) ) {
-					"setting steps_amp".debug;
+					//"setting steps_amp".debug;
 					self.multislider.value = val;
 				};
 				if(controller == self.ctrl(\steps1) ) {
-					"setting steps1".debug;
+					//"setting steps1".debug;
 					self.glidegrid.setNodeStates = [val];
 				};
 				if(controller == self.ctrl(\steps2) ) {
-					"setting steps2".debug;
+					//"setting steps2".debug;
 					self.ampgrid.setNodeStates = [val];
 				};
 
@@ -715,7 +802,8 @@
 		
 		size = size ?? (752@400);
 		self.layout = VLayoutView.new(parent, size.asRect);
-		self.env_layout = HLayoutView.new(self.layout, Rect(0,0,size.x,(size.y/2)-30));
+		//self.env_layout = HLayoutView.new(self.layout, Rect(0,0,size.x,(size.y/2)-40));
+		self.env_layout = HLayoutView.new(self.layout, Rect(0,0,size.x,(size.y/2)-20));
 		self.velocity = ~class_pslider_view.new(self.env_layout, 50@self.env_layout.bounds.height, controller.get_env_arg(index, \vel));
 		self.keytrack = ~class_pslider_view.new(self.env_layout, 50@self.env_layout.bounds.height, controller.get_env_arg(index, \ktr));
 		self.env_view = ~class_dadsr_env_view.new(self.env_layout, (size.x-360)@self.env_layout.bounds.height, index, controller);
@@ -723,8 +811,8 @@
 		self.env_control_layout = HLayoutView.new(self.layout, Rect(0,0,size.x,(size.y/2)+30));
 
 		[\delay_time, \attack_time, \attack_level, \decay_time, \decay_level, \sustain_time, \sustain_level, \release_time].do { arg name;
-			[name, index].debug("class_env_edit_view: making env knob");
-			controller.get_env_arg(index, name).debug("class_env_edit_view: ctrl");
+			//[name, index].debug("class_env_edit_view: making env knob");
+			//controller.get_env_arg(index, name).debug("class_env_edit_view: ctrl");
 			~class_pknob_view.new(self.env_control_layout, nil, controller.get_env_arg(index, name));
 		};
 
@@ -774,7 +862,7 @@
 				self.outer_right_layout.children[0].remove;
 			};
 			self.right_layout = HLayoutView.new(self.outer_right_layout, Rect(0,0,230, self.frame_size.y));
-			[kind, self.kind].debug("class_perfstep_frame: set_right_panel");
+			//[kind, self.kind].debug("class_perfstep_frame: set_right_panel");
 			if(kind == \curves) {
 				self.curve_select = ~class_load_curve_frame.new(
 					self.right_layout, Point(230,self.frame_size.y), curvebank, curvelist, self.curve_edit
@@ -798,7 +886,7 @@
 		self.layout = VLayoutView.new(parent, frame_size.asRect);
 		self.mod_index = idx;
 		
-		"nain1".debug;
+		//"nain1".debug;
 		self.header_layout = HLayoutView.new(self.layout, frame_size.x@20);
 
 		self.load_button = Button.new(self.header_layout, 80@30);
@@ -810,26 +898,26 @@
 			self.body.set_right_panel([\normal, \curves][self.load_button.value])
 		};
 
-		self.save_button = Button.new(self.header_layout, 80@30);
-		self.save_button.states = [["Save"]];
+		//self.save_button = Button.new(self.header_layout, 80@30);
+		//self.save_button.states = [["Save"]];
 
-		self.delete_button = Button.new(self.header_layout, 80@30);
-		self.delete_button.states = [["Delete"]];
+		//self.delete_button = Button.new(self.header_layout, 80@30);
+		//self.delete_button.states = [["Delete"]];
 
-		"nain2".debug;
+		//"nain2".debug;
 
 		self.select_popup = ~class_popup_view.new(self.header_layout, nil, main_controller.get_mod_arg(idx, \kind), { arg popup;
-			popup.value.debug("action!!!!");
+			//popup.value.debug("action!!!!");
 			self.update_body;
 		});
-		"nain3".debug;
+		//"nain3".debug;
 		//self.select_popup.popup.items = [\lfo, \stepper, \performer];
-		"nain3.1".debug;
+		//"nain3.1".debug;
 
 		inner_frame_size = Rect(0,0,self.layout.bounds.width, self.layout.bounds.height-self.header_layout.bounds.height-45);
 		self.body_layout = HLayoutView.new(self.layout, inner_frame_size);
 		self.update_body;
-		"nain4".debug;
+		//"nain4".debug;
 
 		self;
 	},
@@ -906,7 +994,7 @@
 		self.env_view.selectionColor = Color.red;
 		self.env_view.action = { arg view;
 			var val;
-			"env_view:action!!".debug;
+			//"env_view:action!!".debug;
 			val = view.value;
 			if(view.index == 0) {
 				val[0][view.index] = 0;
@@ -1003,7 +1091,7 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_modmatrix_view: set_property");
+		//[name, val].debug("class_modmatrix_view: set_property");
 		switch(name,
 			\label, { self.name.string = val },
 			\selected_modkind, {
@@ -1031,7 +1119,10 @@
 		self.mute_button.action = {
 			self.controller.set_property(\value, self.mute_button.value, false);
 		};
-		self.name = StaticText.new(self.layout, Rect(0,0,size.x-size.y,size.y));
+		if(GUI.current == QtGUI) {
+			StaticText.new(self.layout, Rect(0,0,10,5)); // spacer
+		};
+		self.name = StaticText.new(self.layout, Rect(10,0,size.x-size.y,size.y));
 
 		~make_class_responder.(self, self.layout, self.controller, [ \set_property ]);
 		self;
@@ -1084,14 +1175,15 @@
 		self.popup.action = { arg popup;
 			action.(popup);
 			if(controller.notNil) {
-				self.controller.set_property(\value, self.popup.value, false);
+				self.controller.set_property(\value, self.popup.value, true);
 			} {
 				debug("class_popup_view: controller is nil");
 			};
 		};
 		//[controller.model.uname, controller.menu_items].debug("class_popup_view");
 		self.popup.items = try { 
-			controller.get_menu_items_names.debug("-----------controller.get_menu_items_names");
+			//controller.get_menu_items_names.debug("-----------controller.get_menu_items_names");
+			controller.get_menu_items_names;
 		} { 
 			["default"]
 		};
@@ -1101,7 +1193,7 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_popup_view: set_property");
+		//[name, val].debug("class_popup_view: set_property");
 		switch(name,
 			\value, { 
 				self.popup.value = val;
@@ -1123,30 +1215,36 @@
 		self.text.string = "W";
 		self.text.font = Font("Helvetica", 9);
 		self.text.mouseDownAction={ arg view, x, y, modifier, buttonNumber, clickCount;
-			buttonNumber.debug("class_mod_slot: mouseDownAction: buttonNumber");
-			if(buttonNumber == 2) {
-				self.clear_slot;
-			} {
-				self.x_offset = x;
-				self.val_offset = self.val;
-			}
+			//buttonNumber.debug("class_mod_slot: mouseDownAction: buttonNumber");
+			switch(buttonNumber,
+				~keycodes.middle_click, {
+					self.clear_slot;
+				},
+				~keycodes.right_click, {
+					self.mute_slot;
+				},
+				{
+					self.x_offset = x;
+					self.val_offset = self.val;
+				}
+			);
 		};
 		self.text.mouseUpAction={ arg view, x, y, modifier, buttonNumber, clickCount;
-			buttonNumber.debug("class_mod_slot: mouseUpAction: buttonNumber");
+			//buttonNumber.debug("class_mod_slot: mouseUpAction: buttonNumber");
 			self.update_action; // function set by outside
 		};
 		self.text.mouseMoveAction = { arg view, x, y;
 			var nx, ro;
 			nx = x - self.x_offset;
 			ro = ((nx/100) + self.val_offset).clip(-0.999, 0.999 );
-			[x, y, nx, ro].debug("move");
+			//[x, y, nx, ro].debug("move");
 			self.val = ro;
 			self.action; // function set by outside
 		};
 
 		self.text.receiveDragHandler = {
-			"=======================RRRah".debug;
-			View.currentDrag.debug("========= received");
+			//"=======================RRRah".debug;
+			//View.currentDrag.debug("========= received");
 			self.text.string = View.currentDrag[1];
 		};
 		self.text.canReceiveDragHandler = { true };
@@ -1156,6 +1254,7 @@
 );
 
 ~class_slot_column_view = (
+	// used by bypass and amp_mod, should share slot actions code, not used currently
 	new: { arg self, parent, controller;
 		self = self.deepCopy;
 
@@ -1177,7 +1276,7 @@
 
 	set_property: { arg self, controller, msg, name, val;
 		var slot;
-		[name, val].debug("class_slot_column_view set_property");
+		//[name, val].debug("class_slot_column_view set_property");
 		switch(name,
 			\label, { self.label.string = val },
 			\modulation_source, {
@@ -1234,7 +1333,7 @@
 
 	set_property: { arg self, controller, msg, name, val;
 		var slot;
-		[name, val].debug("pknob set_property");
+		//[name, val].debug("pknob set_property");
 		switch(name,
 			\value, { 
 				self.knob.value = self.controller.model.norm_val;
@@ -1244,15 +1343,15 @@
 );
 
 ~class_pknob_view = (
-	new: { arg self, parent, size, controller;
+	new: { arg self, parent, size, controller, knobsize;
 		var slot;
-		var knobsize;
+		//var knobsize;
 		self = self.deepCopy;
 		//self.vlayout_size = size ?? (180@140);
 		self.vlayout_size = 080@115;
-		self.text_size_y = 20;
+		self.text_size_y = 14;
 		//knobsize = (self.vlayout_size.x @ (self.vlayout_size.y - (self.text_size_y * 3));
-		knobsize = 20@50;
+		knobsize = knobsize ?? (20@50);
 
 
 		self.controller = controller;
@@ -1262,19 +1361,51 @@
 		self.vlayout = VLayoutView.new(parent, (0@0) @ self.vlayout_size);
 		//self.vlayout.resize = 0;
 		//self.vlayout.background = Color.gray(0.7);
+		StaticText.new(self.vlayout, 5 @ 0);//spacer
 		self.label = StaticText.new(self.vlayout, self.vlayout_size.x @ self.text_size_y);
 		self.label.align = \center;
 		self.label.string = "Freq";
-		"HAHAH 1".debug;
+		//"HAHAH 1".debug;
 		self.knob = ModKnob.new(self.vlayout, Rect(0,0,knobsize.x,knobsize.y));
 		self.knob.keyDownAction = { arg view, char, modifiers, unicode, keycode;
-			keycode.debug("class_pknob_view: keyDownAction");
-			if(keycode == ~keycodes.enter) {
-				~class_edit_number_window.new(nil, controller );
-			}
-
+			//keycode.debug("class_pknob_view: keyDownAction");
+			switch(keycode,
+				~keycodes.enter, {
+					~class_edit_number_window.new(nil, controller );
+				},
+				~keycodes.key_c, {
+					self.controller.set_property(\value, 0.5);
+				},
+				~keycodes.key_x, {
+					self.controller.set_property(\value, 0);
+				},
+				~keycodes.key_v, {
+					self.controller.set_property(\value, 1);
+				},
+				~keycodes.left_arrow, {
+					if(self.controller.model.spec.range == 128) {
+						self.controller.set_property(\value, (self.knob.value - (1/128)).clip(0,1));
+					};
+				},
+				~keycodes.right_arrow, {
+					if(self.controller.model.spec.range == 128) {
+						self.controller.set_property(\value, (self.knob.value + (1/128)).clip(0,1));
+					};
+				},
+				~keycodes.up_arrow, {
+					if(self.controller.model.spec.range == 128) {
+						self.controller.set_property(\value, (self.knob.value - (12/128)).clip(0,1));
+					};
+				},
+				~keycodes.down_arrow, {
+					if(self.controller.model.spec.range == 128) {
+						self.controller.set_property(\value, (self.knob.value + (12/128)).clip(0,1));
+					};
+				},
+			);
 		};
-		"HAHAH 2".debug;
+		self.knob.mouse_edit_pixel_range = 2000;
+		//"HAHAH 2".debug;
 		self.val = StaticText.new(self.vlayout, self.vlayout_size.x @ self.text_size_y);
 		self.val.string = "45654.54";
 		self.val.align = \center;
@@ -1288,7 +1419,7 @@
 			} { 5 };
 		,15));
 
-		[self.controller.model.uname, self.controller.model.numslot].debug("------- uname, numslot");
+		//[self.controller.model.uname, self.controller.model.numslot].debug("------- uname, numslot");
 		self.slots = self.numslot.collect { arg idx;
 			//"slot 2".debug;
 			slot = ~class_mod_slot.new(self.slot_layout);
@@ -1305,38 +1436,36 @@
 
 	set_property: { arg self, controller, msg, name, val;
 		var slot;
-		[name, val].debug("pknob set_property");
+		//[name, val].debug("pknob set_property");
 		switch(name,
 			\label, { self.label.string = val },
 			\range, {
 				// val: [slot idx, range]
 				self.knob.set_range(val[0], val[1]);
+				self.slots[val[0]].val = val[1];
 				self.knob.refresh;
 			},
+			\mute_slot, {
+				slot = self.slots[val[0]].text;
+				slot.stringColor = self.controller.get_slot_representation(val[0])[1];
+			},
 			\modulation_source, {
+				var string, color;
 				// val: [slot_idx, modkind, modval]
 				slot = self.slots[val[0]].text;
-				[slot, val].debug("pknob set_property: modulation_source");
-				if(val[1].isNil) {
-					//slot.stringColor = Color.white;
-					slot.string = "";
-					self.slots[val[0]].val = 0;
-				} {
+				#string, color = self.controller.get_slot_representation(val[0]);
+				//[string, color].debug("modulation_source: string, color");
+				slot.string = string;
+				slot.stringColor = color;
+				if(val[1].notNil) {
 					self.knob.set_polarity(val[0], self.controller.main_controller.modulation_manager.get_polarity([val[1], val[2]]));
-					if(val[2].isInteger) {
-						slot.string = (val[2]+1).asString;
-					} {
-						slot.string = val[2].asString;
-					};
-					slot.stringColor = ~map_modulator_to_color.(val[1]);
 				};
+				//[slot, slot.string, val].debug("pknob set_property: modulation_source");
 				//slot.string = "A";
-				[slot, slot.string, val].debug("pknob set_property: modulation_source");
-
 			},
 			\value, { 
 				self.knob.value = self.controller.model.norm_val;
-				self.val.string = self.controller.model.val.asString;
+				self.val.string = self.controller.model.val.asFloat.asStringPrec(6);
 			}
 		)
 	},
@@ -1349,9 +1478,11 @@
 			slot.text.receiveDragHandler = {
 				controller.set_property(\modulation_source, [idx, View.currentDrag[0], View.currentDrag[1]])
 			};
+			slot.mute_slot = {
+				controller.set_property(\mute_slot, [idx, controller.is_slot_muted(idx).not ]);
+			};
 			slot.clear_slot = { arg myself;
 				controller.set_property(\range, [idx, 0]);
-				myself.val = 0;
 				controller.set_property(\modulation_source, [idx, nil, nil]);
 			};
 			slot.action = { arg myself;
@@ -1408,8 +1539,8 @@
 			self.val_size_x = 50;
 			self.slider_size = (self.vlayout_size.x - self.text_size_x - self.val_size_x - self.slot_size_x)@self.vlayout_size.y;
 		};
-		self.slider_size.debug("******************* slider_size");
-		self.vlayout_size.debug("******************* vlayout_size");
+		//self.slider_size.debug("******************* slider_size");
+		//self.vlayout_size.debug("******************* vlayout_size");
 		//self.slider_size = self.vlayout_size.x@50;
 
 		self.controller = controller;
@@ -1465,7 +1596,7 @@
 		if(ctrl.notNil) {
 			self.box.value = ctrl.get_val;
 			self.box.action = { arg number;
-				number.value.debug("class_edit_number_view: number");
+				//number.value.debug("class_edit_number_view: number");
 				ctrl.set_val(number.value);
 				ctrl.changed(\set_property, \value, ctrl.get_norm_val);
 				
@@ -1474,7 +1605,7 @@
 			self.box.clipHi = ctrl.model.spec.clipHi;
 
 			self.box.keyDownAction = { arg view, char, modifiers, unicode, keycode;
-				"class_pknob_view: keyDownAction".debug;
+				//"class_pknob_view: keyDownAction".debug;
 				if(keycode == ~keycodes.escape) {
 					close_fun.()
 				};
@@ -1508,9 +1639,17 @@
 
 
 ~class_frame_view = (
-	make_frame: { arg self, parent, frame_size, mute_ctrl, popup_ctrl, fader_ctrl;
+	make_frame: { arg self, parent, frame_size, mute_ctrl, popup_ctrl, fader_ctrl, popup2_ctrl;
 		var hsize = 20;
 		var body_size = (frame_size.x-30)@(frame_size.y-hsize);
+		var header_size = (body_size.x)@hsize;
+
+		if(popup_ctrl.notNil) {
+			header_size = (body_size.x/2)@hsize;
+		};
+		if(popup2_ctrl.notNil) {
+			header_size = (body_size.x/3)@hsize;
+		};
 
 		frame_size = frame_size ?? (080@155);
 
@@ -1518,9 +1657,12 @@
 		self.frame_layout.background = Color.gray(0.7);
 		self.header_layout = HLayoutView.new(self.frame_layout, Rect(0,0,body_size.x,hsize));
 
-		self.frame_name = ~class_mute_label_view.new(self.header_layout, (body_size.x/2)@hsize, mute_ctrl);
+		self.frame_name = ~class_mute_label_view.new(self.header_layout, header_size, mute_ctrl);
 		if(popup_ctrl.notNil) {
-			self.header_popup = ~class_popup_view.new(self.header_layout, (body_size.x/2)@hsize, popup_ctrl);
+			self.header_popup = ~class_popup_view.new(self.header_layout, header_size, popup_ctrl);
+		};
+		if(popup2_ctrl.notNil) {
+			self.header_popup2 = ~class_popup_view.new(self.header_layout, header_size, popup2_ctrl);
 		};
 
 		self.outer_body_layout = HLayoutView.new(self.frame_layout, Rect(0,0,frame_size.x,body_size.y));
@@ -1538,20 +1680,20 @@
 );
 
 ~class_knobs_frame_view = (
-	new: { arg self, parent, frame_size, knobs, mute, popup, fader;
+	new: { arg self, parent, frame_size, knobs, mute, popup, fader, popup2;
 		// controller_names: [mute, popup, arg1, arg2, fader]
 		self = self.deepCopy;
 		frame_size = frame_size ?? (350@145);
 
-		"class_knobs_frame_view0".debug;
-		~class_frame_view[\make_frame].(self, parent, frame_size, mute, popup, fader);
-		"class_knobs_frame_view1".debug;
+		//"class_knobs_frame_view0".debug;
+		~class_frame_view[\make_frame].(self, parent, frame_size, mute, popup, fader, popup2);
+		//"class_knobs_frame_view1".debug;
 
 		self.knobs = knobs.do { arg ctrl;
-			ctrl.model.uname.debug("class_knobs_frame_view..");
+			//ctrl.model.uname.debug("class_knobs_frame_view..");
 			~class_pknob_view.new(self.body_layout, nil, ctrl);
 		};
-		"class_knobs_frame_view2".debug;
+		//"class_knobs_frame_view2".debug;
 
 		self;
 	}
@@ -1567,17 +1709,17 @@
 		self.controllers = controllers;
 
 		~class_frame_view[\make_frame].(self, parent, frame_size, mute);
-		self.body_layout.debug("SQUOIIII ce bordel0");
+		//self.body_layout.debug("SQUOIIII ce bordel0");
 
-		self.body_layout.debug("SQUOIIII ce bordel1");
+		//self.body_layout.debug("SQUOIIII ce bordel1");
 		self.pitch_knob = ~class_pknob_view.new(self.body_layout, nil, controllers[0]);
-		self.body_layout.debug("SQUOIIII ce bordel2");
+		//self.body_layout.debug("SQUOIIII ce bordel2");
 		self.mod_knob = ~class_pknob_view.new(self.body_layout, nil, controllers[1]);
-		self.body_layout.debug("SQUOIIII ce bordel3");
+		//self.body_layout.debug("SQUOIIII ce bordel3");
 		self.matrix = ~class_modmatrix_view.new(self.body_layout, self.matrix_controller);
 
-		"SQUOIIII ce bordel".debug;
-		self.body_layout.debug("SQUOIIII ce bordel4");
+		//"SQUOIIII ce bordel".debug;
+		//self.body_layout.debug("SQUOIIII ce bordel4");
 		~make_class_responder.(self, self.body_layout, self.matrix_controller, [ \set_property ]);
 
 		self;
@@ -1585,7 +1727,7 @@
 
 	set_property: { arg self, controller, msg, name, val;
 		var slot;
-		[name, val].debug("modosc frame set_property");
+		//[name, val].debug("modosc frame set_property");
 		switch(name,
 			\selected_modkind, { 
 				self.mod_knob.set_controller(self.controllers[1+val]);
@@ -1599,7 +1741,7 @@
 		// controller_names: [mute, amp_slot_column, pan]
 		var frame_size;
 		self = self.deepCopy;
-		frame_size = 140@165;
+		frame_size = 140@135;
 
 		~class_frame_view[\make_frame].(self, parent, frame_size, mute);
 
@@ -1615,7 +1757,7 @@
 		// controller_names: [mute, bypass_slot_column, bypass_fader]
 		var frame_size;
 		self = self.deepCopy;
-		frame_size = 080@155;
+		frame_size = 080@135;
 
 		~class_frame_view[\make_frame].(self, parent, frame_size, mute, nil, fader);
 
@@ -1630,7 +1772,7 @@
 		// controller_names: [mute, master]
 		var frame_size;
 		self = self.deepCopy;
-		frame_size = 110@155;
+		frame_size = 130@135;
 
 		~class_frame_view[\make_frame].(self, parent, frame_size, mute);
 
@@ -1676,7 +1818,7 @@
 
 		frame_size = frame_size ?? (080@155);
 
-		"class_masterfx_view: make_frame: 0".debug;
+		//"class_masterfx_view: make_frame: 0".debug;
 		self.frame_layout = VLayoutView.new(parent, Rect(0,0,frame_size.x,frame_size.y));
 		self.frame_layout.background = Color.gray(0.7);
 		self.header_layout = HLayoutView.new(self.frame_layout, Rect(0,0,body_size.x,hsize));
@@ -1696,7 +1838,7 @@
 			self.frame_name2.value = 0;
 			self.frame_name3.value = 0;
 		};
-		"class_masterfx_view: make_frame: 1".debug;
+		//"class_masterfx_view: make_frame: 1".debug;
 		if(fx1_popup_ctrl.notNil) {
 			self.header_popup = ~class_popup_view.new(self.header_layout, (body_size.x/4)@hsize, fx1_popup_ctrl);
 		};
@@ -1722,10 +1864,10 @@
 
 		////////// tab EQ
 
-		"class_masterfx_view: make_frame: 5".debug;
+		//"class_masterfx_view: make_frame: 5".debug;
 		self.mute3 = ~class_mute_view.new(self.header_layout, nil, eq_mute);
 		self.frame_name3 = Button.new(self.header_layout, labelsizex@hsize);
-		name = "Eq";
+		name = "N/A";
 		self.frame_name3.action = {
 			self.set_current_tab(eq_ctrl);
 			self.frame_name.value = 0;
@@ -1766,16 +1908,17 @@
 
 
 		self.butlayout = VLayoutView.new(self.layout, Rect(0,0,100,60));
+		self.butlayout.background = Color.gray(0.7);
 		self.label = StaticText.new(self.butlayout, 100@30);
 		self.label.string = "Vibrato";
 		self.enable_vibrato = ~widget_onoff_button.(self.butlayout, 100@30, main_controller.get_arg(\vibrato));
 
 
-		"arrate couille".debug;
+		//"arrate couille".debug;
 		self.rate_knob = ~class_pknob_view.new(self.layout, nil, ctrl.(\rate));
-		"2arrate couille".debug;
+		//"2arrate couille".debug;
 		self.depth_knob = ~class_pknob_view.new(self.layout, nil, ctrl.(\depth));
-		"4arrate couille".debug;
+		//"4arrate couille".debug;
 
 		self.int_env = ~class_internal_env.new(self.layout, Rect(0,0,200,sizerect.height/2), ctrl.(\env_attack), ctrl.(\env_decay), 8);
 
@@ -1806,9 +1949,9 @@
 		var matrix_size;
 		var oscbut, titlebut;
 		sizerect = sizerect.asRect;
-		sizerect = Rect(0,0,sizerect.width-300, sizerect.height-50);
+		sizerect = Rect(0,0,sizerect.width-260, sizerect.height-50);
 		//sizerect = Rect(0,0,100, 50);
-		matrix_size = 250@sizerect.height;
+		matrix_size = 300@sizerect.height;
 		self = self.deepCopy;
 		self.main_controller = { arg self; main_controller };
 		self.controller = main_controller.get_arg(ctrlname);
@@ -1818,7 +1961,7 @@
 
 		self.action = { arg view;
 			var val = view.value;
-			val.debug("ktrcurve action!!!");
+			//val.debug("ktrcurve action!!!");
 			self.controller.set_current_curve_value(val);
 		};
 
@@ -1887,11 +2030,11 @@
 			if(special.not) {
 				but.action = { arg button;
 					self.set_modmatrix_button(tidx, idx);
-					[self.inv_line_matching, idx, tidx].debug("invlinematching, idx, tidx");
+					//[self.inv_line_matching, idx, tidx].debug("invlinematching, idx, tidx");
 					self.controller.set_property(\line_value, [self.inv_line_matching[idx], self.inv_matching[tidx]], false);
-					[self.inv_matching, idx, tidx].debug("invmatching, idx, tidx");
+					//[self.inv_matching, idx, tidx].debug("invmatching, idx, tidx");
 					self.controller.set_property(\selected_curve_kind, self.inv_matching[tidx], true);
-					self.controller.model.val.debug("ctrl val");
+					//self.controller.model.val.debug("ctrl val");
 				};
 			};
 			but;
@@ -1911,43 +2054,43 @@
 			} {
 				titlebut.(line_layout, tname, tidx);
 				self.controller.model.rows.size.do { arg idx;
-					idx.debug("MAKING BUT");
+					//idx.debug("MAKING BUT");
 					oscbut.(line_layout, "X", tidx, idx) 
 				};
 			
 			};
 			line_layout;
 		};
-		"GNI".debug("GNI");
+		//"GNI".debug("GNI");
 		~make_class_responder.(self, self.layout, self.controller, [ \set_property ]);
 		self;
 	},
 
 	set_modmatrix_button: { arg self, rownum, oscnum;
 		//self.set_modkind_button(rownum);
-		[rownum, oscnum, self.old_selected_idx].debug("rownum, oscnum, old");
+		//[rownum, oscnum, self.old_selected_idx].debug("rownum, oscnum, old");
 		self.line_layouts[self.old_selected_idx[oscnum]].children[oscnum+1].value = 0;
 		self.line_layouts[rownum].children[oscnum+1].value = 1;
 		self.old_selected_idx[oscnum] = rownum;
 	},
 
 	set_modkind_button: { arg self, kindnum;
-		[kindnum, self.old_selected_kindidx].debug("kindnum, old");
+		//[kindnum, self.old_selected_kindidx].debug("kindnum, old");
 		if(kindnum != self.old_selected_kindidx) {
-			"1".debug;
+			//"1".debug;
 			if(self.old_selected_kindidx >= 0) {
 				self.line_layouts[self.old_selected_kindidx].children[0].value = 0;
 			};
-			"1".debug;
+			//"1".debug;
 			self.line_layouts[kindnum].children[0].value = 1;
-			"1".debug;
+			//"1".debug;
 			self.old_selected_kindidx = kindnum;
-			"1".debug;
+			//"1".debug;
 			self.ktrenv.set_curve(
-				self.controller.get_current_curve.debug("curve"),
+				self.controller.get_current_curve,
 				self.controller.current_curve_is_editable
 			);
-			"1".debug;
+			//"1".debug;
 		} {
 			self.line_layouts[kindnum].children[0].value = 1;
 		
@@ -1955,14 +2098,14 @@
 	},
 
 	set_property: { arg self, controller, msg, name, val;
-		[name, val].debug("class_ktrosc_view: set_property");
+		//[name, val].debug("class_ktrosc_view: set_property");
 		switch(name,
 			\selected_curve_kind, {
 				self.set_modkind_button(self.matching[val]);
 			},
 			\value, { 
 				val.keysValuesDo { arg key, curvekind;
-					[key, curvekind, self.matching[curvekind]].debug("key, curvekind");
+					//[key, curvekind, self.matching[curvekind]].debug("key, curvekind");
 					self.set_modmatrix_button(self.matching[curvekind], self.line_matching[key]);
 				};
 			}
@@ -1996,32 +2139,35 @@
 		var ctrl = { arg name; main_controller.get_arg(("voicing_"++name).asSymbol) };
 		var row;
 		sizerect = sizerect.asRect;
+		sizerect = Rect(0,0,sizerect.width-250, sizerect.height-50);
 		self = self.deepCopy;
 		self.main_controller = { arg self; main_controller };
 
 		self.layout = HLayoutView.new(parent, sizerect);
 		self.left_layout = VLayoutView.new(self.layout, Rect(0,0,80,sizerect.height));
-		self.left_layout.background = Color.red;
+		self.left_layout.background = Color.gray(0.7);
 
-		ctrl.(\pitch_spread).debug("model!!!!!!!!!");
+		//ctrl.(\pitch_spread).debug("model!!!!!!!!!");
 
-		self.voice_max = ~class_edit_number_view.new(self.left_layout, nil, ctrl.(\unisono));
+		//self.voice_max = ~class_edit_number_view.new(self.left_layout, nil, ctrl.(\unisono));
+		self.voice_label = StaticText.new(self.left_layout, Rect(0,0,80,20));
+		self.voice_label.string = "Voices";
 		self.voice_unisono = ~class_edit_number_view.new(self.left_layout, nil, ctrl.(\unisono));
 
-		self.mono_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
-		self.mono_button.states = [
-			["Polyphony"],
-			["Monophony"],
-		];
+		//self.mono_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
+		//self.mono_button.states = [
+		//	["Polyphony"],
+		//	["Monophony"],
+		//];
 
-		self.trigger_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
-		self.trigger_button.states = [
-			["Always"],
-			["Legato"],
-			["Legato Thriller"],
-		];
+		//self.trigger_button = Button.new(self.left_layout, self.left_layout.bounds.width@20);
+		//self.trigger_button.states = [
+		//	["Always"],
+		//	["Legato"],
+		//	["Legato Thriller"],
+		//];
 
-		( sizerect.width - self.left_layout.bounds.width ).debug("size!!!!!!!!!!!!");
+		//( sizerect.width - self.left_layout.bounds.width ).debug("size!!!!!!!!!!!!");
 		self.right_layout = VLayoutView.new(self.layout, Rect(0,0, sizerect.width - self.left_layout.bounds.width, sizerect.height));
 
 		[\pitch, \wavetable, \pan].do { arg name;
@@ -2029,15 +2175,18 @@
 			var myctrl = { arg na; ctrl.((name++na).asSymbol) };
 
 			layout = HLayoutView.new(self.right_layout, Rect(0,0,self.right_layout.bounds.width, 40));
-			layout.background = Color.blue;
+			//layout.background = Color.blue;
 
 			onoff = ~widget_onoff_button.(layout, 30@30, ctrl.(("enable_"++name).asSymbol));
 			//label = StaticText.new(layout, 120@20);
 			//label.string_(main_controller.get_arg(( name++"_spread" ).asSymbol).model.name);
 
+			myctrl.("_lorange").update_val; // can't update spec a init so i update it here
+			myctrl.("_hirange").update_val;
+
 			lorange = ~class_edit_number_view.new(layout, Rect(0,0,50,30), myctrl.("_lorange"));
 
-			slider = ~class_pslider_view.new(layout, (layout.bounds.width - 300)@layout.bounds.height, main_controller.get_arg(( name++"_spread" ).asSymbol));
+			slider = ~class_pslider_view.new(layout, (layout.bounds.width - 160)@layout.bounds.height, main_controller.get_arg(( name++"_spread" ).asSymbol));
 
 			hirange = ~class_edit_number_view.new(layout, Rect(0,0,50,30), myctrl.("_hirange"));
 		};
@@ -2072,7 +2221,7 @@
 		self.bt_save_as.states = [["Save as"]];
 		self.bt_save_as.action = {
 			var action = { arg uname;
-				"action!!".debug;
+				//"action!!".debug;
 				ctrl.save_current_preset_as_uname(uname);
 			};
 			~class_save_preset_dialog.new(ctrl.get_menu_items_names, action);
@@ -2091,7 +2240,7 @@
 		self.main_controller = { arg self; main_controller };
 		self = self.deepCopy;
 
-		"class_center_frame_view.new: 0".debug;
+		//"class_center_frame_view.new: 0".debug;
 
 		makebut = { arg parent, name, idx, kind;
 			var but;
@@ -2102,43 +2251,49 @@
 				[ name, Color.black, Color.gray(0.5) ],
 			];
 			but.action = { arg button;
-				self.tab_layout.children[old_selected_idx[0]].value = 0;
-				self.modenv_layout.children[old_selected_idx[1]*2].value = 0;
-				if(kind == 0) {
-					parent.children[idx].value = 1;
-				} {
-					parent.children[idx*2].value = 1;
-				};
-				old_selected_idx[kind] = idx;
-				if(kind == 0) {
-					self.body_layout.children[0].remove;
-					self.body = switch(idx,
-						0, { ~class_oscpanel_view.new(self.body_layout, self.body_size, main_controller) },
-						1, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_osc) },
-						2, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_filter) },
-						3, { ~class_voicing_view.new(self.body_layout, self.body_size, main_controller) },
-						4, { ~class_routing_view.new(self.body_layout, self.body_size, main_controller) },
-						5, { ~class_saveload_view.new(self.body_layout, self.body_size, main_controller.get_arg(\presets_global)) },
-						{ ~class_routing_view.new(self.body_layout, self.body_size, main_controller) }
-					);
-				} {
-					self.body_layout.children[0].remove;
-					self.body = case
-						{ idx < 4 } { ~class_env_edit_view.new(self.body_layout, self.body_size, idx, main_controller) }
-						{ idx >= 4 } { ~class_lfoperfstep_frame.new(self.body_layout, self.body_size, idx-4, main_controller) }
-					;
+				if(button.value == 1) {
+					self.tab_layout.children[old_selected_idx[0]].value = 0;
+					self.modenv_layout.children[old_selected_idx[1]*2].value = 0;
+					if(kind == 0) {
+						parent.children[idx].value = 1;
+					} {
+						parent.children[idx*2].value = 1;
+					};
+					old_selected_idx[kind] = idx;
+					self.body_layout.children !? { arg x; x[0].remove };
+					if(kind == 0) {
+						//"hey".debug;
+						self.body = switch(idx,
+							0, { ~class_oscpanel_view.new(self.body_layout, self.body_size, main_controller) },
+							1, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_osc) },
+							2, { ~class_ktrcurve_view.new(self.body_layout, self.body_size, main_controller, \ktrcurve_filter) },
+							3, { ~class_voicing_view.new(self.body_layout, self.body_size, main_controller) },
+							4, { ~class_routing_view.new(self.body_layout, self.body_size, main_controller) },
+							5, { ~class_saveload_view.new(self.body_layout, self.body_size, main_controller.get_arg(\presets_global)) },
+							{ ~class_routing_view.new(self.body_layout, self.body_size, main_controller) }
+						);
+					} {
+						//self.body_layout.children[0].remove;
+						self.body = case
+							{ idx < 4 } { ~class_env_edit_view.new(self.body_layout, self.body_size, idx, main_controller) }
+							{ idx >= 4 } { ~class_lfoperfstep_frame.new(self.body_layout, self.body_size, idx-4, main_controller) }
+						;
 
+					}
+				} {
+					button.value = 1;
 				}
 			};
 			if(kind == 1) {
 				drag = DragSource.new(parent, Rect(0,0,10,10));
 				drag.object = [\mod, idx];
+				drag.string = "";
 			};
 			//drag.string = "+";
 
 		};
 
-		"class_center_frame_view.new: 1".debug;
+		//"class_center_frame_view.new: 1".debug;
 		self.layout = VLayoutView.new(parent, sizerect);
 		self.layout.background = Color.gray(0.9);
 
@@ -2146,20 +2301,49 @@
 		self.body_size = Point(self.layout.bounds.width,self.layout.bounds.height-00); 
 
 		self.tab_layout = HLayoutView.new(self.layout, Rect(0,0,self.layout.bounds.width,20));
-		["Osc", "Ktr Osc", "Ktr Flt", "Voicing", "Routing", "Global"].do { arg name, i;
+		// Preset should go to top of window and replaced by globals settins
+		["Osc", "Ktr Osc", "Ktr Flt", "Voicing", "Routing", "Presets"].do { arg name, i;
 			makebut.(self.tab_layout, name, i, 0);
 		};
-		"class_center_frame_view.new: 2".debug;
+		//"class_center_frame_view.new: 2".debug;
 		self.modenv_layout = HLayoutView.new(self.layout, Rect(0,0,self.layout.bounds.width,20));
 		["Env1", "Env2", "Env3", "Env4", "LFO1", "LFO2", "LFO3", "LFO4"].do { arg name, i;
 			makebut.(self.modenv_layout, name, i, 1);
 		};
-		"class_center_frame_view.new: 3".debug;
+		//"class_center_frame_view.new: 3".debug;
+		//"hooo".debug;
 		self.body_layout = HLayoutView.new(self.layout, Rect(0,0,self.body_size.x,self.body_size.y));
-		self.body = ~class_env_edit_view.new(self.body_layout, self.body_size, 0, main_controller);
-		"class_center_frame_view.new: fin".debug;
+		self.modenv_layout.children[0].valueAction = 1;
+		//self.body = ~class_env_edit_view.new(self.body_layout, self.body_size, 0, main_controller);
+		//"class_center_frame_view.new: fin".debug;
+
+		self.tab_controllers = 4.collect { arg tidx;
+			var ctrl;
+			ctrl = self.main_controller.get_arg("modulator%_kind".format(tidx+1).asSymbol);
+			~make_class_responder.(self, self.layout, ctrl, [ \set_property ], false);
+			ctrl;
+		};
+
 
 		self;
+	},
+
+	set_property: { arg self, controller, msg, name, val;
+		var idx;
+		idx = self.tab_controllers.indexOf(controller);
+		//[idx, name, val].debug("center panel: set_property");
+		switch(name,
+			\value, { 
+				var name = controller.get_menu_items_names[val][..3]++(idx+1);
+				var oldval;
+				oldval = self.modenv_layout.children[(idx+4)*2].value;
+				self.modenv_layout.children[(idx+4)*2].states = [
+					[ name, Color.black, Color.clear ],
+					[ name, Color.black, Color.gray(0.5) ],
+				];
+				oldval = self.modenv_layout.children[(idx+4)*2].value = oldval;
+			},
+		)
 	}
 
 );
@@ -2170,7 +2354,7 @@
 		var makebut, makeknob;
 		var bounds;
 
-		"MACRO".debug;
+		//"MACRO".debug;
 
 		makebut = { arg parent, name, modkind;
 			var text;
@@ -2204,7 +2388,7 @@
 			//drag.background = Color.yellow;
 			drag.string = "";
 
-			ret.debug("RET");
+			//ret.debug("RET");
 			ret.label = text;
 
 			ret;
@@ -2235,13 +2419,13 @@
 		self.macro_sublayout1 = HLayoutView.new(self.macro_layout, Rect(0,0,bounds.width,bounds.height/2));
 		4.do { arg idx;
 			self.macros.add(makeknob.(self.macro_sublayout1, idx, controllers[idx]));
-			self.macros.debug("macros ddd");
+			//self.macros.debug("macros ddd");
 			~make_class_responder.(self, self.layout, controllers[idx], [ \set_property ]);
 		};
 		self.macro_sublayout2 = HLayoutView.new(self.macro_layout, Rect(0,0,bounds.width,bounds.height/2));
 		4.do { arg idx;
 			self.macros.add(makeknob.(self.macro_sublayout2, idx+4, controllers[idx+4]));
-			self.macros.debug("macros eee");
+			//self.macros.debug("macros eee");
 			~make_class_responder.(self, self.layout, controllers[idx+4], [ \set_property ]);
 		};
 
@@ -2252,8 +2436,8 @@
 	set_property: { arg self, controller, msg, name, val;
 		var idx;
 		idx = self.controllers.indexOf(controller);
-		[idx, name, val].debug("macro frame set_property");
-		self.macros.debug("macros");
+		//[idx, name, val].debug("macro frame set_property");
+		//self.macros.debug("macros");
 		switch(name,
 			\value, { 
 				self.macros[idx].knob.value = val;
@@ -2302,7 +2486,7 @@
 		self.controller = controller;
 		
 
-		"hehehe1".debug;
+		//"hehehe1".debug;
 		self.window = Window.new("Passive", Rect(0,0,1400,800));
 		self.window.front;
 		self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
@@ -2326,53 +2510,80 @@
 		self.controller = controller;
 		
 
-		"hehehe1".debug;
-		self.window = Window.new("Passive", Rect(0,0,1400,800));
+		//"hehehe1".debug;
+		self.window = Window.new("Passive", Rect(0,0,1250,800));
 		self.window.front;
-		self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
+		if(GUI.current == QtGUI) {
+			self.supermain_layout = VLayoutView.new(self.window, self.window.view.bounds);
+			//self.window.view.bounds.width.debug("window width");
+			self.presets = ~class_saveload_view.new(self.supermain_layout, Rect(0,0,400,30), controller.get_arg(\presets_global));
+			//self.main_layout = HLayoutView.new(self.supermain_layout, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-80));
+			//self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
+			//self.main_layout = HLayoutView.new(self.window, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-90));
+			self.main_layout = HLayoutView.new(self.supermain_layout, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-90));
+		} {
+			//self.supermain_layout = HLayoutView.new(self.window, Rect(0,0,500,500));
+			//self.supermain_layout = VLayoutView.new(self.window, self.window.view.bounds);
+			//self.window.view.bounds.width.debug("window width");
+			//self.presets = ~class_saveload_view.new(self.supermain_layout, Rect(0,0,400,30), controller.get_arg(\presets_global));
+			//self.main_layout = HLayoutView.new(self.supermain_layout, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-80));
+			self.main_layout = HLayoutView.new(self.window, self.window.view.bounds);
+			//self.main_layout = HLayoutView.new(self.window, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-90));
+			//self.main_layout = HLayoutView.new(self.supermain_layout, Rect(0,0,self.window.view.bounds.width, self.window.view.bounds.height-90));
+		
+		};
 
-		self.gen_layout = VLayoutView.new(self.main_layout, Rect(0,0,400,800));
+		self.gen_layout = VLayoutView.new(self.main_layout, Rect(0,0,370,800));
 
-		"hehehe1.1".debug;
+		//"hehehe1.1".debug;
 			controllers = get_controllers.(\osc1);
-			self.osc1 = ~class_knobs_frame_view.new(self.gen_layout, nil, controllers[0..3], controllers[4], controllers[5], controllers[6]);
+			frame_size = 360@135;
+			self.osc1 = ~class_knobs_frame_view.new(
+				self.gen_layout, frame_size, controllers[0..3], controllers[4], controllers[5], controllers[6], controllers[7]
+			);
 			controllers = get_controllers.(\osc2);
-			self.osc2 = ~class_knobs_frame_view.new(self.gen_layout, nil, controllers[0..3], controllers[4], controllers[5], controllers[6]);
+			self.osc2 = ~class_knobs_frame_view.new(
+				self.gen_layout, frame_size, controllers[0..3], controllers[4], controllers[5], controllers[6], controllers[7]
+			);
 			controllers = get_controllers.(\osc3);
-			self.osc3 = ~class_knobs_frame_view.new(self.gen_layout, nil, controllers[0..3], controllers[4], controllers[5], controllers[6]);
-		"hehehe1.2".debug;
+			self.osc3 = ~class_knobs_frame_view.new(
+				self.gen_layout, frame_size, controllers[0..3], controllers[4], controllers[5], controllers[6], controllers[7]
+			);
+		//"hehehe1.2".debug;
 
 			controllers = get_controllers.(\modosc);
-			self.modosc = ~class_modosc_frame_view.new(self.gen_layout, nil, controllers[0..5], controllers[6]);
+			frame_size = 400@162;
+			//frame_size = 400@135;
+			self.modosc = ~class_modosc_frame_view.new(self.gen_layout, frame_size, controllers[0..5], controllers[6]);
 
 			self.noiseback_layout = HLayoutView.new(self.gen_layout, Rect(0,0,400,200));
 				
-		"hehehe1.3".debug;
+		//"hehehe1.3".debug;
 				controllers = get_controllers.(\noise);
-				frame_size = 200@150;
+				frame_size = 200@135;
 				self.noise = ~class_knobs_frame_view.new(self.noiseback_layout, frame_size, controllers[0..1], controllers[2], controllers[3], controllers[4]);
 
-		"hehehe1.4".debug;
+		//"hehehe1.4".debug;
 				controllers = get_controllers.(\feedback);
 				self.feedback = ~class_knobs_frame_view.new(self.noiseback_layout, frame_size, [controllers[0]], controllers[1], nil, controllers[2]);
 
-		"hehehe2".debug;
+		//"hehehe2".debug;
 	  self.right_layout = VLayoutView.new(self.main_layout, Rect(0,0,1000,1000));
 
-			self.top_layout = HLayoutView.new(self.right_layout, Rect(0,0,1000,300));
+			self.top_layout = HLayoutView.new(self.right_layout, Rect(0,0,1000,270));
 
-				self.filter_layout = HLayoutView.new(self.top_layout, Rect(0,0,400,300));
+				self.filter_layout = HLayoutView.new(self.top_layout, Rect(0,0,420,270));
 
-		"hehehe2.1".debug;
-					frame_size = 50@(260);
+		//"hehehe2.1".debug;
+					frame_size = 50@(245);
 					self.parseq = ~class_pslider_view.new(self.filter_layout, frame_size, self.controller.get_arg(\filter_parseq));
-		"hehehe2.2".debug;
+		//"hehehe2.2".debug;
 
-					self.filter_frames_layout = VLayoutView.new(self.filter_layout, Rect(0,0,300,300));
+					self.filter_frames_layout = VLayoutView.new(self.filter_layout, Rect(0,0,315,270));
 
-		"hehehe3".debug;
+		//"hehehe3".debug;
 						controllers = get_controllers.(\filter1);
-						frame_size = 300@150;
+						frame_size = 300@135;
 						self.filter1 = ~class_knobs_frame_view.new(self.filter_frames_layout, frame_size,
 							controllers[0..2], controllers[3], controllers[4], controllers[5]
 						);
@@ -2381,24 +2592,24 @@
 							controllers[0..2], controllers[3], controllers[4], controllers[5]
 						);
 
-		"hehehe4".debug;
-					frame_size = 50@(260);
+		//"hehehe4".debug;
+					frame_size = 50@(245);
 					self.filtermix = ~class_pslider_view.new(self.filter_layout, frame_size, self.controller.get_arg(\filter_mix));
 
 				self.master_layout = VLayoutView.new(self.top_layout, Rect(0,0,700,300));
 
-					self.master_amp_layout = HLayoutView.new(self.master_layout, Rect(0,0,300,150));
+					self.master_amp_layout = HLayoutView.new(self.master_layout, Rect(0,0,300,135));
 						
-		"hehehe5".debug;
+		//"hehehe5".debug;
 						controllers = get_controllers.(\master_pan);
 						self.master_pan = ~class_amp_view.new(self.master_amp_layout, controllers[0], controllers[1], controllers[2]);
-		"hehehe5.1".debug;
+		//"hehehe5.1".debug;
 						controllers = get_controllers.(\bypass);
 						self.bypass = ~class_bypass_view.new(self.master_amp_layout, controllers[0], controllers[1], controllers[2]);
-		"hehehe5.2".debug;
+		//"hehehe5.2".debug;
 						controllers = get_controllers.(\master);
 						self.master = ~class_master_view.new(self.master_amp_layout, controllers[0], controllers[1]);
-		"hehehe6".debug;
+		//"hehehe6".debug;
 
 					self.master_fx_layout = HLayoutView.new(self.master_layout, Rect(0,0,300,300));
 
@@ -2411,7 +2622,7 @@
 
 			self.center_frame = ~class_center_frame_view.new(self.right_layout, Rect(0,0,1000,300), self.controller);
 
-		"hehehe7".debug;
+		//"hehehe7".debug;
 			self.bottom_layout = HLayoutView.new(self.right_layout, Rect(0,0,1000,135));
 			//self.bottom_layout.background = Color.red;
 				
@@ -2422,7 +2633,7 @@
 				self.insertfx2 = ~class_knobs_frame_view.new(self.bottom_layout, frame_size, controllers[0..1], controllers[2], controllers[3]);
 				controllers = get_controllers.(\macro);
 				self.macro = ~class_macro_frame_view.new(self.bottom_layout, self.main_controller, controllers);
-		"hehehe8".debug;
+		//"hehehe8".debug;
 
 
 		self;

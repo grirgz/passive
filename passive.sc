@@ -2,30 +2,14 @@ GUI.qt
 Quarks.gui
 
 (
-~load_passive = {
-	~current_dir = "~/code/sc/passive/";
-	"loading synth.sc".debug;
-	(~current_dir +/+ "synth.sc").standardizePath.load;
-	"loading wavetable.sc".debug;
-	(~current_dir +/+ "wavetable.sc").standardizePath.load;
-	"loading ui.sc".debug;
-	(~current_dir +/+ "ui.sc").standardizePath.load;
-	"loading paramdata.sc".debug;
-	(~current_dir +/+ "paramdata.sc").standardizePath.load;
-	"loading control.sc".debug;
-	(~current_dir +/+ "control.sc").standardizePath.load;
-};
-
-~new_passive = {
-	if(~passive.notNil) {~passive.destructor };
-	~passive = ~class_passive_controller.new;
-};
+	"~/code/sc/passive/main.sc".standardizePath.load;
 )
 Debug.enableDebug = true
+Debug.enableDebug = false
 (
 ~load_passive.();
 ~new_passive.();
-//~passive.load_preset_by_uname("default");
+~passive.load_preset_by_uname("default");
 ~passive.make_gui;
 //~passive.build_synthdef;
 //~midiresp = ~passive.make_midi_responder;
@@ -37,6 +21,7 @@ Debug.enableDebug = true
 ~load_passive.();
 ~new_passive.();
 ~passive.load_preset_by_uname("default");
+//~passive.load_preset_by_uname("alien indus");
 ~passive.make_gui;
 //~passive.build_synthdef;
 ~midiresp = ~passive.make_midi_responder
@@ -83,6 +68,9 @@ Task {
 ~passive.load_preset(~preset)
 
 ~passive.modulation_manager.get_instr_modulation
+~passive.modulation_manager.get_disabled_modulators
+~passive.modulation_manager.source_dict
+~passive.get_arg(\modulator1_curve1).save_data
 
 ~modman = ~preset[\modulation_manager]
 
@@ -95,7 +83,9 @@ Task {
 
 ~passive.modulation_manager.get_source(\osc1_pitch, 0)
 ~passive.modulation_manager.get_instr_modulation
+~passive.modulation_manager.get_instr_modulation[\osc1_pitch]
 ~passive.modulation_manager.slot_dict[[\osc1_pitch, 0.0]]
+~passive.modulation_manager.modulation_dict[[\osc1_pitch, 1]]
 n = Dictionary.new;
 n[[\osc1_pitch, 0]] = 1
 ~passive.modulation_manager.slot_dict.keysValuesDo { arg key, val; n[key] = val }
@@ -120,10 +110,16 @@ n[[\osc1_pitch, 0]] = 1
 
 ~passive.synthdef_args.keysValuesDo { arg key, val; val.debug(key)}
 ~passive.synthdef_args.getPairs
+~passive.synthdef_ns_args[0] // enabled
+~passive.synthdef_ns_args[1] // kind
+~passive.synthdef_ns_args[2] // mod
 ~passive.synthdef_ns_args[3][\voicing]
-~passive.synthdef_ns_args[2]
+~passive.synthdef_ns_args[3] // routing
 ~passive.synthdef_ns_args[4]
 [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1  ][1..9]
+
+~passive.synthdef_ns_args[2][\osc1_pitch][1]
+
 ~pass
 ~passive.synthdef_ns_args.postcs
 ~passive.build_synthdef;
@@ -308,3 +304,6 @@ w = Window.new;
 w.front;
 
 )
+MIDIClient.restart
+MIDIClient.init
+MIDIClient.initialized

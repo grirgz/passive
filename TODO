@@ -1,20 +1,22 @@
 // prioritaire
+- ecrire le readme
+- tester
+- faire des presets
+- bug: swing osc marche pas avec le preset en haut
+
+// autres
 - equaliser
-- amp mod
-- osc bypass
-- ktr pour insfx
 - bug: explosion du son en modifiant certains parametres
 - bug: xrun avec le passive_fx pour raison inconnue
 - bug: defaut d'affichage des courbes qui comportent un modulo
-- bug: modulation env range
-
-// autres
-- redimensionner les fader des filtres, les frames de bypass et master
+- amp mod
+- bypass mod (remplacer par knob)
 - macro midi
 
 // qt
 - qt: knob label value must be truncated
 - replace label number by gridbox in performer to works with qt
+- change keyboard shortcuts
 
 // optimisations
 - performer: trouver un moyen d'updater la courbe moins couteux
@@ -26,19 +28,30 @@
 - deplacer load_preset_by_uname dans main_controller
 
 // plus tard
-- gui: quand modulation, le knob doit tenir compte de la polarité
+- changer les tab name en fonction des mod
+- suprimer les boutons non implementés dans voicing
+- lfo phase: bug bizzare
 - mettre les courbes de performer dans le meme ordre que l'original
 - implementer les env qui se trig en legato
-- implementer le osc bend (fm) et osc formant (am)
 - save/load curve preset
 - sidechain mod
 - save/load modulator preset
 - ajouter les autres boutons du modulator
 - implementer plus completement les autres tab de l'ecran central
 - env sustain and morph
-- rajouter des racourcis claviers aux knob et une zone neutre pour la souris
 
 // fait
+- redimensionner les fader des filtres, les frames de bypass et master
+- mute modulation
+- creer un fichier de config
+- rajouter des racourcis claviers aux knob et une zone neutre pour la souris
+- implementer le osc bend (fm) et osc formant (am)
+- gui: quand modulation, le knob doit tenir compte de la polarité
+- internal env should not be editable
+- save load quelquechose
+- osc bypass
+- ktr pour insfx
+- bug: modulation env range
 - implementer les modulators ktr, vel, AT, trR
 - prise en charge du rangeslider dans les modulators
 - rajouter des courbes au performer

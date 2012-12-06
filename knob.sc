@@ -2,6 +2,28 @@
 0.2.clip(0,00.1)
 
 (
+v = { arg v, m; ((1-m)*1 + (v*m)) };
+
+v.(0.0, 0.5)
+)
+~ampcomp.(9000)
+(
+~ampcomp = { arg x; (20 / x) ** 0.33 };
+f = { arg v, m; ((1-m)*1 + (~ampcomp.(v)*m)) };
+
+~freq = 200;
+~velocity = 0.5;
+~ktr = 0.5;
+~vel = 0.5;
+f.(~freq, ~ktr).debug("ampcomp");
+v.(~velocity, ~vel).debug("velcomp");
+(v.(~velocity, ~vel) * f.(~freq, ~ktr)).debug("norm");
+(v.(0, ~vel) * f.(~freq, ~ktr)).debug("min");
+(v.(1, ~vel) * f.(~freq, ~ktr)).debug("max");
+)
+
+
+(
 ~myclip = { arg val, mi, ma;
 	if(val < mi) {
 		val = mi;
@@ -346,10 +368,10 @@ w.front;
 
 (
 w = Window.new;
-v = ModSlider.new(w, Rect(10,10,40,150));
+v = ModSlider.new(w, Rect(10,10,150,50));
 v.range1 = -0.5;
 v.range2 = 0.5;
-v.range3 = nil;
+v.range3 = 0.2;
 v.polarity2 = \bipolar;
 //v.background = Color.white;
 w.front;
@@ -595,6 +617,7 @@ w.front;
 w = Window.new("Testing BoxGrid", Rect(10, 500, 840, 142)).front;
 
 a = BoxGrid.new(w, bounds: Rect(20, 20, 760, 20), columns: 16, rows: 1);
+a.setNodeString_(0,0,"1");
 
 a.setTrailDrag_(true, true);
 a.setNodeBorder_(2);
@@ -1500,3 +1523,100 @@ f = "/home/ggz/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architect
 a.bla(3)
 a.know = false
 a.keys
+
+
+(
+	var midiout;
+	var midi_source;
+
+	//MIDIClient.restart;
+	MIDIClient.sources.do { arg source;
+		var ret, retret;
+		ret = source.name.find("A-PRO MIDI 2");
+		source.uid.debug("uid");
+		ret.debug("name");
+		if(ret.notNil) {
+			midi_source = ret;
+		};
+	};
+	midi_source.debug("midi_source");
+	MIDIIn.disconnect(0, midi_source-3);
+	MIDIIn.disconnect(0, midi_source-1);
+	MIDIIn.connect(0, midi_source-2);
+)
+
+
+"jack_connect 'A-PRO:midi/playback_2' 'SuperCollider:midi/capture_1'".unixCmd
+"jack_disconnect 'A-PRO:midi/playback_2' 'SuperCollider:midi/capture_1'".unixCmd
+
+
+
+b = Buffer.alloc(s,44100,1);
+
+
+(
+{
+        z = SinOsc.ar(200) * LFSaw.ar(4).range(0,1);
+        [z , BufAllpassC.ar(b.bufnum, z, XLine.kr(0.1, 1, 20), 2)]
+}.play
+)
+
+(
+
+	~set_if_near = { arg myoldval, val, ctrl;
+		var oldval;
+		oldval = ~oldval;
+		if(myoldval == oldval or: {
+			val.inclusivelyBetween(oldval-0.1,oldval+0.1)	
+		}) {
+			//ctrl.set_property(\value, val);
+			val.debug("set");
+		} {
+		
+			val.debug("not set");
+		}
+	};
+)
+~set_
+~oldval = 2
+~set_if_near.(0.2, 2.1)
+
+(
+
+~a =	~class_wavetable_sample_file.new(
+		"~/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24/Add - BinAdd Fib".standardizePath,
+		)
+)
+(
+
+~a =	~class_wavetable_sample_file.new(
+		"~/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24".standardizePath,
+		)
+)
+(
+
+~a =	~class_wavetable_sample_file.new(
+		"~/Musique/archwavetabldkfje/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24".standardizePath,
+		)
+)
+~a.label
+~a.pathname.folderName
+~a.pathname.fileName
+~a.pathname.isFile
+~a.pathname.isFolder
+
+~a = PathName.new("~/Musique/")
+(~a.fullPath +/+ "/").normalizePath
+~a.fullPath.last == $/
+
+~a = PathName.new("~/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24")
+~a.isFile
+~a.isFolder
+~a.fileName
+~a.folderName
+
+~a = PathName("/home/ggz/Musique/archwavetable/Architecture Waveforms 2010 Wav24/Architecture Waveforms 2010 Wav24/UHF - Simple Periodic/")
+~a.fileName
+~a.folderName
+~a.isFolder
+~a.fullPath

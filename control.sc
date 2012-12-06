@@ -1,10 +1,12 @@
 ~load_curve_in_buffer = { arg buffer, curvefunc;
 	var size = buffer.numFrames;
-	size.debug("load_curve_in_buffer: size");
-	buffer.debug("buffer");
+	//size.debug("load_curve_in_buffer: size");
+	//buffer.debug("buffer");
 	buffer.loadCollection(FloatArray.fill(size, { arg i;
 		curvefunc.(i/size)
-	}),0, { "done".debug; })
+	}),0, { 
+		//"done".debug;
+	})
 };
 
 ~load_curve_in_wavetable_buffer = { arg buffer, curvefunc;
@@ -13,20 +15,24 @@
 	sig = Signal.newClear(size/2);
 	sig.waveFill(curvefunc, 0, 1);
 
-	size.debug("load_curve_in_wavetable_buffer: size");
-	buffer.debug("buffer");
-	buffer.loadCollection(sig.asWavetable,0, { "done".debug; });
+	//size.debug("load_curve_in_wavetable_buffer: size");
+	//buffer.debug("buffer");
+	buffer.loadCollection(sig.asWavetable,0, { 
+		//"done".debug;
+	});
 };
 
 ~load_curvelist_in_buffer = { arg buffer, curvefunclist, curve_amps;
 	var size = buffer.numFrames;
 	var slicesize = (size/curvefunclist.size).asInteger;
-	size.debug("load_curvelist_in_buffer: size");
-	buffer.debug("buffer");
+	//size.debug("load_curvelist_in_buffer: size");
+	//buffer.debug("buffer");
 	curvefunclist.do { arg curvefunc, idx;
 		buffer.loadCollection(FloatArray.fill(slicesize, { arg i;
 			curvefunc.(i/slicesize).linlin(-1,1,0,1) * curve_amps.wrapAt(idx)
-		}), idx*slicesize, { "done".debug; })
+		}), idx*slicesize, { 
+			//"done".debug;
+		})
 	}
 };
 
@@ -66,7 +72,7 @@
 	// if u read many diff samples choose a bigger pow of 2
 	size = buffer.numFrames;
 	fsize = sig.size;
-	[fsize, size/2].debug("load_sample_in_wavetable_buffer: resampling");
+	//[fsize, size/2].debug("load_sample_in_wavetable_buffer: resampling");
 	sig = sig.resamp1(size/2).as(Signal);
 
 	// Convert it to a Wavetable
@@ -221,7 +227,7 @@
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
 		self.model.putAll(paramdata);
-		self.buffer = Buffer.alloc(s, 512, 1);
+		self.buffer = Buffer.alloc(s, controller.get_config.lfo_buffer_size, 1);
 		controller.register_buffer(self.buffer, self.model.uname);
 		self.set_curve(self.model.curve);
 
@@ -230,7 +236,10 @@
 
 	save_data: { arg self;
 		var data = self.model.deepCopy;
-		data.custom_curve = data.custom_curve.save_data;
+		if(self.model.custom_curve.notNil) {
+			data.custom_curve = self.model.custom_curve.save_data;
+		};
+		data;
 	},
 
 	load_data: { arg self, data;
@@ -292,11 +301,11 @@
 	},
 
 	set_property: { arg self, name, val, update=true;
-		[name, val, update].debug("class_pparam_controller.set_property");
+		//[name, val, update].debug("class_pparam_controller.set_property");
 		switch(name,
 			\curve, { 
 				self.set_curve(val)
-			}
+			},
 		);
 		if(update) {
 			self.changed(\set_property, name, val);
@@ -304,7 +313,7 @@
 	},
 
 	refresh: { arg self;
-		"REFRESH++".debug;
+		//"REFRESH++".debug;
 		self.changed(\set_property, \value, self.get_menu_items_names.indexOf(self.model.curve));
 		self.changed(\set_property, \curve, self.model.curve);
 	},
@@ -333,7 +342,7 @@
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
 		self.model.putAll(paramdata);
-		self.buffer = Buffer.alloc(s, 2048, 1);
+		self.buffer = Buffer.alloc(s, controller.get_config.performer_buffer_size, 1);
 		controller.register_buffer(self.buffer, self.model.uname);
 		self.set_curve(self.model.curve, self.model.curve_amps);
 
@@ -379,7 +388,7 @@
 	},
 
 	set_property: { arg self, name, val, update=true;
-		[name, val, update].debug("class_pparam_controller.set_property");
+		//[name, val, update].debug("class_pparam_controller.set_property");
 		switch(name,
 			\curve, { 
 				self.set_curve(val, self.model.curve_amps);
@@ -395,7 +404,7 @@
 	},
 
 	refresh: { arg self;
-		"REFRESH++".debug;
+		//"REFRESH++".debug;
 		//self.changed(\set_property, \value, self.get_menu_items_names.indexOf(self.model.curve));
 		self.changed(\set_property, \curve, self.model.curve);
 		self.changed(\set_property, \curve_amps, self.model.curve_amps);
@@ -425,7 +434,7 @@
 		self.main_controller = { arg self; controller };
 		self.menu_items = controller.get_curvebank[\get_keys].(controller.get_curvebank) ++ [\custom];
 		self.model.putAll(paramdata);
-		self.buffer = Buffer.alloc(s, 1024, 1);
+		self.buffer = Buffer.alloc(s, controller.get_config.wavetable_buffer_size, 1);
 		controller.register_buffer(self.buffer, self.model.uname);
 		self.curvebank = ~curvebank;
 		self.set_curve(self.model.val);
@@ -457,9 +466,9 @@
 		if(curve == \custom) {
 			apply_action = { arg pathlist;
 				self.model.pathlist = pathlist;
-				pathlist.debug("class_pparam_wavetable_controller: set_curve: custom: pathlist");
+				//pathlist.debug("class_pparam_wavetable_controller: set_curve: custom: pathlist");
 				self.buffer_array.do(_.free);
-				self.buffer_array = Buffer.allocConsecutive(pathlist.size, s, 2048);
+				self.buffer_array = Buffer.allocConsecutive(pathlist.size, s, self.main_controller.get_config.wavetable_buffer_size);
 				self.buffer_array.do { arg buf, idx;
 					self.main_controller.register_buffer(buf, self.model.uname);
 					pathlist[idx].load_in_wavetable_buffer(buf);
@@ -467,7 +476,7 @@
 				};
 				self.model.buffer_range = self.buffer_array.size-1;
 				osc_pos_ctrl = self.main_controller.get_arg("osc%_wt_pos".format(self.model.indexes).asSymbol);
-				osc_pos_ctrl.debug("osc_wt_pos ctrl");
+				//osc_pos_ctrl.debug("osc_wt_pos ctrl");
 				osc_pos_ctrl.model.spec.maxval = self.model.buffer_range - 0.0001;
 				self.model.val_uname = curve;
 				self.model.val = curve_idx;
@@ -511,11 +520,11 @@
 	},
 
 	refresh: { arg self;
-		"wtREFRESH++".debug;
+		//"wtREFRESH++".debug;
 		self.changed(\set_property, \label, self.model.name);
-		"wtREFRESH++ 2".debug;
+		//"wtREFRESH++ 2".debug;
 		self.changed(\set_property, \value, self.model.val);
-		"wtREFRESH++ 3".debug;
+		//"wtREFRESH++ 3".debug;
 
 	},
 
@@ -555,11 +564,11 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		paramdata.debug("class_pparam_kind_controller");
+		//paramdata.debug("class_pparam_kind_controller");
 		self.model.putAll(paramdata);
 
 		self.menu_items = controller.get_module_variants(paramdata.bank);
-		self.menu_items.debug("class_pparam_kind_controller: new: menu_items");
+		//self.menu_items.debug("class_pparam_kind_controller: new: menu_items");
 		self.model.val_uname = self.menu_items[self.model.val].uname;
 		self.model.knobs.do { arg knobname;
 			self.main_controller.get_arg(knobname).set_variant(self.menu_items[self.model.val])
@@ -576,14 +585,14 @@
 
 	set_property: { arg self, name, val, update=true;
 		var final_val, mod;
-		[name, val].debug("class_pparam_kind_controller");
+		//[name, val].debug("class_pparam_kind_controller");
 		switch(name,
 			\label, { self.name = val },
 			\value, { 
 				self.model.val = val;
 				self.model.val_uname = self.menu_items[val].uname;
 				self.model.knobs.do { arg knobname;
-					[knobname, val, self.menu_items[val]].debug("°°class_pparam_kind_controller: set_property: value: variant");
+					//[knobname, val, self.menu_items[val]].debug("°°class_pparam_kind_controller: set_property: value: variant");
 					self.main_controller.get_arg(knobname).set_variant(self.menu_items[val])
 				};
 				self.main_controller.update_arg(self.model.uname);
@@ -595,11 +604,11 @@
 	},
 
 	refresh: { arg self;
-		"filkindREFRESH++".debug;
+		//"filkindREFRESH++".debug;
 		self.changed(\set_property, \label, self.model.name);
-		"filkindREFRESH++2".debug;
+		//"filkindREFRESH++2".debug;
 		self.changed(\set_property, \value, self.model.val);
-		"filkindREFRESH++3".debug;
+		//"filkindREFRESH++3".debug;
 
 	},
 
@@ -636,7 +645,7 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		paramdata.debug("class_pparam_kind_controller");
+		//paramdata.debug("class_pparam_kind_controller");
 		self.model.kind = paramdata.kind;
 		self.model.uname = paramdata.uname;
 		self.model.name = paramdata.name;
@@ -646,7 +655,7 @@
 
 	set_property: { arg self, name, val, update=true;
 		var final_val, mod;
-		[name, val].debug("class_pparam_modmatrix_controller");
+		//[name, val].debug("class_pparam_modmatrix_controller");
 		switch(name,
 			\label, { self.name = val },
 			\modvalue, { 
@@ -718,11 +727,11 @@
 	},
 
 	refresh: { arg self;
-		"muteREFRESH++".debug;
+		//"muteREFRESH++".debug;
 		self.changed(\set_property, \label, self.model.name);
-		"muteREFRESH++2".debug;
+		//"muteREFRESH++2".debug;
 		self.changed(\set_property, \value, self.model.val);
-		"muteREFRESH++3".debug;
+		//"muteREFRESH++3".debug;
 
 	},
 
@@ -756,19 +765,25 @@
 
 	load_data: { arg self, data;
 		self.model.val = data.val;
+		self.model.range = data.range;
 	},
 
 	set_property: { arg self, name, val, update=true;
 		var final_val, mod;
-		[self.model.uname, name, val, update].debug("class_pparam_steps_controller.set_property");
+		//[self.model.uname, name, val, update].debug("class_pparam_steps_controller.set_property");
 		switch(name,
 			\value, { 
 				self.model.val = val;
 				self.main_controller.update_arg(self.model.uname);
 			},
 			\range, { 
-				self.model.range = val;
-				self.main_controller.update_arg(self.model.uname);
+				//self.model.range.debug("old range");
+				if(self.model.range != val) {
+					self.model.range = val;
+					self.main_controller.update_arg(self.model.uname);
+				} {
+					//"dont update range".debug;
+				};
 			}
 		);
 		if(update) {
@@ -777,7 +792,7 @@
 	},
 
 	refresh: { arg self;
-		"REFRESH++".debug;
+		//"REFRESH++".debug;
 		self.changed(\set_property, \value, self.model.val);
 		if(self.model.range.notNil) {
 			self.changed(\set_property, \range, self.model.range);
@@ -788,6 +803,8 @@
 		self.model.val;
 	},
 );
+
+///////////////////// simple control controllers
 
 ~class_pparam_controller = (
 	model: (
@@ -824,7 +841,7 @@
 	},
 
 	set_val: { arg self, val, norm=false;
-		[self.model.uname, val, norm].debug("class_pparam_controller: set_val");
+		//[self.model.uname, val, norm].debug("class_pparam_controller: set_val");
 	
 		if(norm) {
 			self.model.norm_val = val;
@@ -834,7 +851,7 @@
 			self.model.norm_val = self.model.spec.unmap(val);
 		};
 
-		"before final_val".debug;
+		//"before final_val".debug;
 		[self.model.uname, self.main_controller.modulation_manager.get_external_value(self.model.uname)].debug("ext");
 
 		self.update_val;
@@ -848,9 +865,47 @@
 		self.bus.set(self.model.spec.map(final_val));
 	},
 
+	is_slot_muted: { arg self, idx;
+		self.main_controller.modulation_manager.is_muted(self.model.uname, idx);
+	},
+
+	get_slot_representation: { arg self, idx;
+		// return [string, color]
+		var modkind, modval;
+		var color, string;
+		var modman = self.main_controller.modulation_manager;
+		#idx, modkind, modval = modman.get_source(self.model.uname, idx);
+
+		if(modkind.isNil) {
+			string = "";
+		} {
+			//FIXME: use other function to avoid code redondance
+			if(modval.isInteger) {
+				string = modval+1;
+			} {
+				string = modval.asString[0].asString;
+			
+			};
+		};
+
+		color = switch(modkind,
+			\internal, { Color.magenta },
+			\mod, { Color.red },
+			\macro, { Color.green },
+			\midi, { Color.blue },
+			\special, { Color.blue },
+			{ Color.black }
+		);
+		//[self.model.uname, idx, modman.is_muted(self.model.uname, idx)].debug("class_pparam_controller: get_slot_representation: is muted");
+		if(modman.is_muted(self.model.uname, idx)) {
+			color = Color.gray;
+		};
+		[string, color]
+	},
+
 	set_property: { arg self, name, val, update=true;
 		var mod;
-		[name, val, update].debug("class_pparam_controller.set_property");
+		//[name, val, update].debug("class_pparam_controller.set_property");
 		switch(name,
 			\label, { self.model.name = val },
 			\range, {
@@ -858,6 +913,10 @@
 				self.main_controller.modulation_manager.set_range(self.model.uname, val[0], val[1]);
 			},
 			\update_range, {
+				self.main_controller.update_arg(self.model.uname);
+			},
+			\mute_slot, {
+				self.main_controller.modulation_manager.set_muted(self.model.uname, val[0], val[1]);
 				self.main_controller.update_arg(self.model.uname);
 			},
 			\modulation_source, {
@@ -880,7 +939,7 @@
 	},
 
 	refresh: { arg self;
-		"REFRESH++".debug;
+		//"class_pparam_controller: REFRESH".debug;
 		self.changed(\set_property, \label, self.model.name);
 		self.changed(\set_property, \value, self.model.val);
 		self.model.numslot.do { arg idx;
@@ -892,6 +951,7 @@
 				self.main_controller.modulation_manager.get_source(self.model.uname, idx)
 			);
 		};
+		//"class_pparam_controller: end REFRESH".debug;
 
 	},
 
@@ -925,7 +985,7 @@
 	},
 
 	update_val: { arg self;
-		self.model.uname.debug("class_pparam_fixed_controller: update_val");
+		//self.model.uname.debug("class_pparam_fixed_controller: update_val");
 		if(self.in_init.not) { // bug if update while all args are not initialized
 			self.main_controller.update_arg(self.model.uname);
 		};
@@ -942,9 +1002,9 @@
 		self.main_controller = { arg self; controller };
 		self.model.putAll(paramdata);
 		self.in_init = true;
-		[paramdata.val, self.model.uname].debug("class_pparam_spec_controller: paramdata.val");
+		//[paramdata.val, self.model.uname].debug("class_pparam_spec_controller: paramdata.val");
 		self.set_val(paramdata.val ?? self.model.spec.default);
-		[self.model.val, self.model.uname].debug("class_pparam_spec_controller: model.val");
+		//[self.model.val, self.model.uname].debug("class_pparam_spec_controller: model.val");
 		self.in_init = false;
 
 		self;
@@ -954,7 +1014,7 @@
 		var dest_param, spec;
 		if(self.in_init.not) {
 			dest_param = self.main_controller.get_arg(self.model.destination);
-			self.model.uname.debug("class_pparam_fixed_controller: update_val");
+			//self.model.uname.debug("class_pparam_fixed_controller: update_val");
 			spec = dest_param.model.spec.copy;
 			if(self.model.spec_bound == \minval) {
 				spec.minval = self.model.val;
@@ -1005,6 +1065,9 @@
 	}
 );
 
+
+/////////////////////// central panel controllers
+
 ~class_presets_global_controller = (
 
 	model: (
@@ -1025,12 +1088,13 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		paramdata.debug("class_pparam_kind_controller");
+		//paramdata.debug("class_pparam_kind_controller");
 		self.model.putAll(paramdata);
 
 		self.model.val_uname = \no_preset;
 		self.model.val = 0;
-		self.preset_dir = Platform.userAppSupportDir +/+ "passive/presets/";
+		//self.preset_dir = Platform.userAppSupportDir +/+ "passive/presets/";
+		self.preset_dir = controller.get_config.preset_path;
 		self.preset_dir.mkdir;
 
 		self.read_presets;
@@ -1062,7 +1126,7 @@
 
 	save_current_preset_as_uname: { arg self, uname;
 		var preset;
-		uname.debug("class_presets_global_controller: save_current_preset_as_uname");
+		//uname.debug("class_presets_global_controller: save_current_preset_as_uname");
 		if(uname != \no_preset) {
 			uname.dump;
 			self.menu_items.do { arg me; me.dump };
@@ -1071,15 +1135,22 @@
 			preset[\name] = uname; // TODO: watch for forbiden chars in path
 			preset.writeArchive(self.preset_dir +/+ uname);
 			self.read_presets;
-			[self.menu_items, uname, self.menu_items.indexOfEqual(uname)].debug("items, uname, index");
+			//[self.menu_items, uname, self.menu_items.indexOfEqual(uname)].debug("items, uname, index");
 			self.model.val = self.menu_items.indexOfEqual(uname) ?? 0;
 			self.changed(\set_property, \value, self.model.val);
 		};
 	},
 
 	load_preset_by_uname: { arg self, uname;
+		var preset;
 		if(uname != \no_preset) {
-			self.main_controller.load_preset(self.preset_dict[uname]);
+			self.main_controller.synthdef_name_suffix = "_"++uname;
+			preset = self.main_controller.load_preset(self.preset_dict[uname]);
+			self.model.val = self.menu_items.indexOfEqual(uname) ?? 0;
+			self.changed(\set_property, \value, self.model.val);
+		} {
+			self.main_controller.synthdef_name_suffix = "";
+			nil;
 		};
 	},
 
@@ -1096,7 +1167,7 @@
 
 	set_property: { arg self, name, val, update=true;
 		var final_val, mod;
-		[name, val].debug("class_presets_global_controller");
+		//[name, val].debug("class_presets_global_controller");
 		switch(name,
 			\value, { 
 				self.model.val = val;
@@ -1219,7 +1290,7 @@
 
 	set_property: { arg self, name, val, update=true;
 		var final_val, mod;
-		[name, val].debug("class_ktrosc_controller: set_property");
+		//[name, val].debug("class_ktrosc_controller: set_property");
 		switch(name,
 			\value, { 
 				self.model.val = val
@@ -1273,7 +1344,7 @@
 	new: { arg self, controller, paramdata;
 		self = self.deepCopy;
 		self.main_controller = { arg self; controller };
-		paramdata.debug("class_voicing_controller");
+		//paramdata.debug("class_voicing_controller");
 		self.model.putAll(paramdata);
 
 		self;
@@ -1298,7 +1369,7 @@
 	},
 
 	get_source: { arg self, uname, idx;
-		// format is from set_property:\modulation_source
+		// return format is from set_property:\modulation_source
 		if(self.slot_dict[[uname, idx]].isNil) {
 			// no modulation for this param
 			[idx]
@@ -1365,6 +1436,14 @@
 		self.modulation_dict[[uname, idx]].muted = val;
 	},
 
+	is_muted: { arg self, uname, idx;
+		if(self.modulation_dict[[uname,idx]].notNil) {
+			self.modulation_dict[[uname, idx]].muted;
+		} {
+			false;
+		}
+	},
+
 	get_label: { arg self, uname, idx;
 		if(self.slot_dict[[uname, idx]].isNil) {
 			""
@@ -1396,12 +1475,12 @@
 	},
 
 	set_external_value: { arg self, source, val;
-		[source, val].debug("modulation_manager.set_external_value");
+		//[source, val].debug("modulation_manager.set_external_value");
 		if(self.modulation_dict[source].isNil) {
 			self.modulation_dict[source] = ();
 		};
 		self.modulation_dict[source].val = val;
-		[self.source_dict].debug("modulation_manager.set_external_value: source_dict");
+		//[self.source_dict].debug("modulation_manager.set_external_value: source_dict");
 		self.source_dict[source].do { arg dest;
 			self.main_controller.get_arg(dest[0]).update_val;
 		}
@@ -1427,10 +1506,10 @@
 	get_polarity: { arg self, src;
 		var ctrl, ret = \unipolar;
 		if(src[0] == \mod) {
-			("modulator%_kind".format(src[1]-3)).debug("get_polarity");
+			//("modulator%_kind".format(src[1]-3)).debug("get_polarity");
 			ctrl = self.main_controller.get_arg("modulator%_kind".format(src[1]-3).asSymbol);
 			if(ctrl.notNil) {
-				["ctrl not nil", ctrl.model.val_uname].debug;
+				//["ctrl not nil", ctrl.model.val_uname].debug;
 				if(ctrl.model.val_uname == \lfo) {
 					ret = \bipolar
 				}
@@ -1442,10 +1521,10 @@
 
 	get_instr_modulation: { arg self;
 		var mod = Dictionary.new;
-		self.slot_dict.debug("modulation_manager: get_instr_modulation: slot_dict");
-		self.source_dict.debug("modulation_manager: get_instr_modulation: source_dict");
-		self.modulation_dict.debug("modulation_manager: get_instr_modulation: modulation_dict");
-		self.external_dict.debug("modulation_manager: get_instr_modulation: external_dict");
+		//self.slot_dict.debug("modulation_manager: get_instr_modulation: slot_dict");
+		//self.source_dict.debug("modulation_manager: get_instr_modulation: source_dict");
+		//self.modulation_dict.debug("modulation_manager: get_instr_modulation: modulation_dict");
+		//self.external_dict.debug("modulation_manager: get_instr_modulation: external_dict");
 		self.slot_dict.keysValuesDo { arg dest, source;
 			var uname, idx;
 			var srckind, srcidx;
@@ -1454,44 +1533,45 @@
 			# uname, idx = dest;
 			# srckind, srcidx = source;
 			if([\mod, \special, \internal].includes(srckind)) {
-				[dest, source].debug("srckindmod");
+				//[dest, source].debug("srckindmod");
 				ret_source = srcidx;
 				if(self.modulation_dict[dest].notNil) {
-					[dest, source].debug("modulnotnil");
+					var ctrl;
+					//[dest, source].debug("modulnotnil");
+					ctrl = self.main_controller.get_arg(uname);
+					ret_spec = ctrl.model.spec;
 					if(self.modulation_dict[dest].muted.not) {
-						var ctrl;
-						[dest, source].debug("modulnotmuted");
-						ctrl = self.main_controller.get_arg(uname);
+						//[dest, source].debug("modulnotmuted");
 						ret_range = self.modulation_dict[dest].range;
-						ret_range.debug("ret_range");
+						//ret_range.debug("ret_range");
 						ret_range = ret_range.clip(ctrl.get_norm_val.neg, 1 - ctrl.get_norm_val);
-						ret_range.debug("ret_range2");
-						[ctrl.get_norm_val, ctrl.model.spec.range, ret_range].debug("normval, specrange, retrange2");
+						//ret_range.debug("ret_range2");
+						//[ctrl.get_norm_val, ctrl.model.spec.range, ret_range].debug("normval, specrange, retrange2");
 						//ret_range = ctrl.model.spec.map(ret_range.abs) * sign(ret_range);
 						ret_norm_range = ret_range;
-						ret_spec = ctrl.model.spec;
 						ret_range = ctrl.model.spec.range * ret_range;
-						ret_range.debug("ret_range3");
+						//ret_range.debug("ret_range3");
 					}
 				}
 			}; 
 			if(ret_source.notNil) {
 				if(srckind == \internal) {
 					var int_uname;
-					[uname.asString[..8], uname.asString[..8] == "modulator"].debug("modman uname");
-					if(uname.asString[..8] == "modulator" or: { uname.asString[..6] == "modulator" }) {
-						ret_dest = uname.asString.drop("modulator1_".size).asSymbol;
-						int_uname = (\internal_mod ++ ret_source).asSymbol;
-					} {
-						int_uname = \error;
-					};
-					[uname.asString[..6], uname.asString[..6] == "vibrato"].debug("modman uname");
-					if(uname.asString[..6] == "vibrato") {
-						ret_dest = uname.asString.drop("vibrato_".size).asSymbol;
-						int_uname = (\internal_mod ++ ret_source).asSymbol;
-					} {
-						int_uname = \error;
-					};
+					//[uname.asString[..8], uname.asString[..8] == "modulator"].debug("modman uname");
+					//[uname.asString[..6], uname.asString[..6] == "vibrato"].debug("modman uname");
+					case
+						{ uname.asString[..8] == "modulator" } {
+							ret_dest = uname.asString.drop("modulator1_".size).asSymbol;
+							int_uname = (\internal_mod ++ ret_source).asSymbol;
+						} 
+						{ uname.asString[..6] == "vibrato" } {
+							ret_dest = uname.asString.drop("vibrato_".size).asSymbol;
+							int_uname = (\internal_mod ++ ret_source).asSymbol;
+						}
+						{
+							int_uname = \error;
+						}
+					;
 					uname = int_uname;
 				};
 				if(mod[uname].isNil) {
@@ -1501,6 +1581,7 @@
 					source: ret_source,
 					range: ret_range,
 					norm_range: ret_norm_range,
+					muted: self.modulation_dict[dest] !? _.muted,
 				);
 				if(srckind == \internal) {
 					// dest should be in slot_idx, no ?
@@ -1510,17 +1591,37 @@
 					mod[uname][idx][\special] = ret_source;
 					mod[uname][idx][\source] = 0;
 				};
+				//[uname, ret_spec].debug("get_instr_modulation: set spec");
 				mod[uname][\spec] = ret_spec;
 			}
 		};
 		mod;
 
+	},
+
+	get_disabled_modulators: { arg self;
+		var ret = (0..7).asSet;
+		ret.remove(3); // master amp env
+		self.source_dict.keys.do { arg key;
+			if(key[0] == \mod) {
+				ret.remove(key[1])
+			}
+		};
+		ret
 	}
 );
 
 
 ~make_midi_note_responder = { arg player;
 	var prec;
+
+	if(MIDIClient.initialized.not) {
+		MIDIClient.init;
+	};
+	
+	if(player.get_config.notNil) {
+		player.get_config.init_jack;
+	};
 
 	prec = (
 		nonr: nil,
@@ -1535,7 +1636,7 @@
 			NoteOffResponder.removeAll;
 
 			self.nonr = NoteOnResponder { arg src, chan, num, veloc;
-				[src, chan, num, veloc].debug("note on");
+				//[src, chan, num, veloc].debug("note on");
 				
 				if(self.livebook[[chan, num]].isNil) {
 					self.livebook[[chan, num]] = livesynth.value(num.midicps, veloc/127);
@@ -1549,10 +1650,10 @@
 			};
 			self.noffr = NoteOffResponder { arg src, chan, num, veloc;
 				var note;
-				[self.livebook[[chan,num]], [src, chan, num, veloc]].debug("note off");
+				//[self.livebook[[chan,num]], [src, chan, num, veloc]].debug("note off");
 				if(self.livebook[[chan,num]].notNil) {
 					if((Process.elapsedTime - self.livebook[[chan,num]].start_time)  < 0.02) {
-						(Process.elapsedTime - self.livebook[[chan,num]].start_time ).debug("make_midi_note_responder: noff responder: kill node");
+						//(Process.elapsedTime - self.livebook[[chan,num]].start_time ).debug("make_midi_note_responder: noff responder: kill node");
 						self.livebook[[chan,num]].synth_node.free;
 					};
 					self.livebook[[chan,num]].release_node;
@@ -1575,17 +1676,72 @@
 
 };
 
+~make_midi_cc_responder = { arg controllers, ccnums, master_ctrl, master_cc;
+
+	var ccresp = List.new;
+	var set_if_near;
+	var cc_val_list = (-1) ! ccnums.size;
+	var master_cc_val = -1;
+	CCResponder.removeAll;
+
+	set_if_near = { arg myoldval, val, ctrl;
+		var oldval;
+		var delta = 0.5/128;
+		//var delta = 0.1;
+		oldval = ctrl.get_norm_val;
+		if(myoldval == oldval or: {
+			val.inclusivelyBetween(oldval-delta,oldval+delta)	
+		}) {
+			{
+				ctrl.set_property(\value, val);
+			}.defer
+		}
+	};
+
+	ccnums.do { arg ccnum, idx;
+		ccresp.add( CCResponder({ |src,chan,num,value|
+				var val = value/127;
+				set_if_near.(cc_val_list[idx], val, controllers[idx]);
+				cc_val_list[idx] = val;
+			},
+			nil, // any source
+			nil, // any channel
+			ccnum, // any CC number
+			nil // any value
+			)
+		)
+	};
+	if(master_cc.notNil) {
+		ccresp.add( CCResponder({ |src,chan,num,value|
+				var val = value/127;
+				set_if_near.(master_cc_val, val, master_ctrl);
+				master_cc_val = val;
+			},
+			nil, // any source
+			nil, // any channel
+			master_cc, // any CC number
+			nil // any value
+			)
+		)
+	}
+
+};
+
 ~class_passive_controller = (
 	
 	bus_dict: Dictionary.new,
 	rebuild_synthdef: true,
+	disable_build_synthdef: false,
+	synthdef_name: \passive,
+	synthdef_fx_name: \passive_fx,
+	synthdef_name_suffix: "",
 
 	new: { arg self;
 		self = self.deepCopy;
-		"DEBUTTT".debug;
+		//"DEBUTTT".debug;
 		self.modulation_manager = ~class_modulation_manager.new(self);
 		self.fx_feedback_bus = self.get_new_control_bus(\fx_fb);
-		self.fx_feedback_bus.debug("FXFEEDBACK");
+		//self.fx_feedback_bus.debug("FXFEEDBACK");
 		self.fx_bus = self.get_new_audio_bus(\fx, 2);
 		self.fx_bypass_bus = self.get_new_audio_bus(\fx_bypass, 2);
 		self.make_params;
@@ -1673,7 +1829,7 @@
 				},
 				\voicing, {
 					uname = val.model.uname.asString.replace("voicing_", "").asSymbol;
-					uname.debug("build: uname");
+					//uname.debug("build: uname");
 					args[\routing][\voicing][uname] = switch(val.model.kind,
 						\knob, { val.model.val },
 						\static_knob, { val.model.val },
@@ -1699,23 +1855,24 @@
 				}
 			);
 		};
-		"FIN build args".debug;
-		"build args 1".debug;
+		//"FIN build args".debug;
+		//"build args 1".debug;
 		args[\mod] = self.modulation_manager.get_instr_modulation;
+		args[\mod][\disabled] = self.modulation_manager.get_disabled_modulators;
 		args[\routing][\fx_feedback_bus] = self.fx_feedback_bus.index; // FIXME: must not be shared bus until fx are separated
-		"build args 1".debug;
+		//"build args 1".debug;
 		args[\routing][\modulation_fxbus] = self.modulation_fxbus.collect(_.index); // FIXME: must not be shared bus until fx are separated
 
 		//synthdef = Instr(\passive).asSynthDef( args );
 		//self.synthdef = synthdef;
 		//synthdef.add;
 		//self.synthdef.debug("synthdef");
-		"build args 1".debug;
+		//"build args 1".debug;
 		args[\gate] = 1;
 		{
 			var enabled, kinds, mod, routing, steps;
 
-		"build args 1".debug;
+		//"build args 1".debug;
 			enabled = args[\enabled];
 			kinds = args[\kinds];
 			mod = args[\mod];
@@ -1723,29 +1880,36 @@
 			steps = args[\steps];
 			self.synthdef_ns_args = [enabled, kinds, mod, routing, steps];
 
-		"build args 1".debug;
+		//"build args 1".debug;
 			#[ enabled, kinds, mod, routing, steps ].do { arg key; args.removeAt(key) };
 
-			SynthDef(\passive, { 
+			self.synthdef_name = (\passive++self.synthdef_name_suffix).asSymbol;
+			self.synthdef_fx_name = (\passive_fx++self.synthdef_name_suffix).asSymbol;
+
+			SynthDef(self.synthdef_name, { 
+			//SynthDef(\passive, { 
 					var ou;
 					ou = SynthDef.wrap(Instr(\passive).func, nil, [enabled, kinds, mod, routing, steps]);
 					Out.ar(self.fx_bus.index, ou[0]);
 					Out.ar(self.fx_bypass_bus.index, ou[1]);
 					//Out.ar(0, ou);
-			}).add;
-		"build args 1".debug;
+			})
+			//.debug("############################synthdef")
+			.add;
+		//"build args 1".debug;
 
-			SynthDef(\passive_fx, { arg out = 0;
+			SynthDef(self.synthdef_fx_name, { arg out = 0;
+			//SynthDef(\passive_fx, { arg out = 0;
 					var ou;
 					var in = In.ar(self.fx_bus.index, 2);
 					var in_bypass = In.ar(self.fx_bypass_bus.index, 2);
 					ou = SynthDef.wrap(Instr(\passive_fx).func, nil, [in, in_bypass, enabled, kinds, mod, routing, steps]);
 					ou = Out.ar(out, ou);
 			}).add;
-		"build args 1".debug;
+		//"build args 1".debug;
 		}.value;
 		self.synthdef_args = args;
-		"build args 1".debug;
+		//"build args 1".debug;
 		//self.patch = Patch(\passive,  self.synthdef_args );
 		//self.patch.invalidateSynthDef;
 		//self.rebuild = false;
@@ -1754,10 +1918,13 @@
 
 	update_arg: { arg self, uname;
 		// TODO
-		uname.debug("class_passive_controller: update_arg");
-		self.build_synthdef;
-		self.rebuild_synthdef = true;
-	
+		if(self.disable_build_synthdef) {
+			//uname.debug("class_passive_controller: disabled update_arg");
+		} {
+			//uname.debug("class_passive_controller: update_arg");
+			self.build_synthdef;
+			self.rebuild_synthdef = true;
+		};
 	},
 
 	compute_freq: { arg self, freq, destdict;
@@ -1765,18 +1932,19 @@
 		var ktrosc = self.get_arg(\ktrcurve_osc);
 		var ktrfilt = self.get_arg(\ktrcurve_filter);
 		var midi = freq.cpsmidi;
-		midi.debug("compute_freq: midi");
+		//midi.debug("compute_freq: midi");
 
 		dict[\freq] = freq;
 		dict[\ktr_osc1_freq] = ktrosc.get_transfert_function(\osc1).(midi, 128).midicps;
 		dict[\ktr_osc2_freq] = ktrosc.get_transfert_function(\osc2).(midi, 128).midicps;
 		dict[\ktr_osc3_freq] = ktrosc.get_transfert_function(\osc3).(midi, 128).midicps;
 		dict[\ktr_mosc_freq] = ktrosc.get_transfert_function(\mosc).(midi, 128).midicps;
+		dict[\ktr_insfx_freq] = ktrosc.get_transfert_function(\insfx).(midi, 128).midicps;
 
 		dict[\ktr_filter1_freq] = ktrfilt.get_transfert_function(\filter1).(midi, 128).midicps;
 		dict[\ktr_filter2_freq] = ktrfilt.get_transfert_function(\filter2).(midi, 128).midicps;
 
-		dict.debug("compute_freq");
+		//dict.debug("compute_freq");
 
 		if(destdict.notNil) {
 			destdict.putAll(dict);
@@ -1790,7 +1958,7 @@
 		{ arg freq=400, velocity=0.5;
 			var synth;
 			var busses;
-			"###########----- making note".debug;
+			//"###########----- making note".debug;
 			self.compute_freq(freq, self.synthdef_args);
 			self.synthdef_args[\velocity] = velocity;
 			//p = Patch(\passive,  self.synthdef_args );
@@ -1800,18 +1968,20 @@
 				};
 				self.synthdef_args[\modulation_bus] = busses;
 				if(self.note_group.isNil or: {self.note_group.isPlaying.not}) {
-					"########### making group".debug;
+					//"########### making group".debug;
 					self.note_group = Group.new(s);
 					self.note_group.register;
 				};
 
-				"########### making synth".debug;
-				synth = Synth(\passive, self.synthdef_args.getPairs, self.note_group);
+				//"########### making synth".debug;
+				synth = Synth(self.synthdef_name, self.synthdef_args.getPairs, self.note_group);
+				//synth = Synth(\passive, self.synthdef_args.getPairs, self.note_group);
 
 				if(self.fx_node.isNil or: {self.fx_node.isPlaying.not or:{self.rebuild_synthdef}}) {
-					"########### making fx".debug;
+					//"########### making fx".debug;
 					self.fx_node.release;
-					self.fx_node = Synth(\passive_fx, self.synthdef_args.getPairs, self.note_group, \addAfter);
+					self.fx_node = Synth(self.synthdef_fx_name, self.synthdef_args.getPairs, self.note_group, \addAfter);
+					//self.fx_node = Synth(\passive_fx, self.synthdef_args.getPairs, self.note_group, \addAfter);
 					self.fx_node.register;
 					self.rebuild_synthdef = false;
 				}
@@ -1826,7 +1996,7 @@
 				synth_node: synth,
 				busses: busses,
 				release_node: { arg self;
-					"********************* releasing synth".debug;
+					//"********************* releasing synth".debug;
 					synth.release;
 					self.busses.do { arg bus; bus.free; }
 				};
@@ -1837,9 +2007,19 @@
 	},
 
 	make_midi_responder: { arg self;
+		var ccnums, master_cc, cc_ctrls;
+
+		ccnums = self.get_config.macro_midi_cc;
+		cc_ctrls = 8.collect { arg x; self.get_arg("macro%_control".format(x+1).asSymbol) };
+		self.cc_responder = ~make_midi_cc_responder.(cc_ctrls, ccnums, self.get_arg(\amp), self.get_config.master_volume_cc);
+
 		self.midi_note_responder = ~make_midi_note_responder.(self);
 		self.midi_note_responder.start_liveplay;
 		self.midi_note_responder;
+	},
+
+	get_config: { arg self;
+		~passive_config;
 	},
 
 	get_new_control_bus: { arg self, uname;
@@ -1893,6 +2073,7 @@
 		preset[\name] = "No name";
 		preset[\uname] = \noname;
 		self.data.keys.do { arg key;
+			//key.debug("saving key");
 			ret[key] = self.data[key].save_data;
 		};
 		preset[\data] = ret;
@@ -1900,11 +2081,15 @@
 	},
 
 	load_preset: { arg self, preset;
+		//preset.name.debug("=================loading preset");
 		self.modulation_manager.load_data(preset[\modulation_manager]);
+		self.disable_build_synthdef = true;
 		preset.data.keys.do { arg key;
+			//key.debug("loading key");
 			self.data[key].load_data(preset.data[key]);
 			self.data[key].refresh;
 		};
+		self.disable_build_synthdef = false;
 		self.rebuild_synthdef = true;
 		self.build_synthdef;
 	},

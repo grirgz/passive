@@ -10,7 +10,7 @@
 
 	get_keys: { arg self;
 		var keys;
-		self.debug("curvebank: get_keys");
+		//self.debug("curvebank: get_keys");
 		keys = self.keys;
 		keys = keys - Set[\get_keys, \known, \name];
 		keys.asArray.sort;
@@ -115,7 +115,7 @@
 		x = x % 1;
 		y = sin(x*pi+(pi/2));
 	},
-	const: { arg x;
+	unit: { arg x;
 		1
 	},
 	negsquare1: { arg x;
@@ -167,24 +167,31 @@
 
 ~passive_specs = (
 	// (minval, maxval, warp, step, default, units)
-	wt_pos: ControlSpec(0, 1, \lin, 0.01, 0),
+	wt_pos: ControlSpec(0, 1, \lin, 0, 0),
 	velocity: \unipolar.asSpec,
 	ktr: \unipolar.asSpec,
 	pitch: ControlSpec(-64,64, \lin, 0, 0, "midi"),
 	rate: \widefreq.asSpec,
 	glidefade: \unipolar.asSpec,
 	env: \attack.asSpec,
+	boost: ControlSpec(-500, 100, 'lin', 0, 0),
 	amp: ControlSpec(0, 1, 'amp', 0, 0.1, ""),
-	wideamp: ControlSpec(0, 3, 'amp', 0, 0.1, ""),
+	wideamp: ControlSpec(0, 6, 'amp', 0, 0.1, ""),
 	crush: ControlSpec(1, 31, 'lin', 1, 1, ""),
 	smalldelay: ControlSpec(0, 0.02, 'lin', 0, 0.001, ""),
 	envamp: ControlSpec(0, 1, 'amp', 0, 1, "")
+);
+
+~passive_specs_steps = (
+	// (minval, maxval, warp, step, default, units)
+	pitch: (smallstep:1),
 );
 
 
 ~make_module_kinds = {
 	var module_kinds;
 	var specs = ~passive_specs;
+	var steps = ~passive_specs_steps;
 
 	module_kinds = (
 		filter: [
@@ -192,12 +199,14 @@
 				name: "LPF",
 				uname: \lpf,
 				args: ["Cutoff"],
+				smallstep: [steps[\pitch].smallstep],
 				specs: [specs[\pitch]]
 			),
 			(
 				name: "RLPF",
 				uname: \rlpf,
 				args: ["Cutoff", "Resonance"],
+				smallstep: [steps[\pitch].smallstep],
 				specs: [specs[\pitch], \rq]
 			),
 			(
@@ -250,7 +259,7 @@
 				name: "Freqshift",
 				uname: \freqshift,
 				args: ["Wet/Dry", "Shift"],
-				specs: [\unipolar, \freq]
+				specs: [\unipolar, specs[\pitch]]
 			),
 			(
 				name: "Delay",
@@ -262,7 +271,7 @@
 				name: "Hold",
 				uname: \samplehold,
 				args: ["Wet/Dry", "Pitch"],
-				specs: [\unipolar, \widefreq]
+				specs: [\unipolar, specs[\pitch]]
 			),
 			(
 				name: "Bitcrusher",
@@ -274,7 +283,7 @@
 				name: "Filter",
 				uname: \simplefilter,
 				args: ["HP freq", "LP freq"],
-				specs: [\freq, \freq]
+				specs: [specs[\pitch], specs[\pitch]]
 			),
 			(
 				name: "SineShaper",
@@ -325,7 +334,13 @@
 				uname: \delay,
 				args: ["Mix", "Damp", "Delay left", "Delay right"],
 				specs: [\unipolar, \freq, specs[\smalldelay], specs[\smalldelay]]
-			)
+			),
+			(
+				name: "Comb",
+				uname: \comb,
+				args: ["Mix", "Delay", "Offset", "Decay"],
+				specs: [\unipolar, \delay, \delay, \decay]
+			),
 		],
 		modulator: [
 			(
@@ -339,6 +354,32 @@
 			(
 				name: "Stepper",
 				uname: \stepper,
+			)
+		],
+		spectrum: [
+			(
+				name: "Normal",
+				uname: \normal,
+			),
+			(
+				name: "Bend",
+				uname: \bend,
+			),
+			(
+				name: "Formant",
+				uname: \formant,
+			),
+			(
+				name: "Clip",
+				uname: \clip,
+			),
+			(
+				name: "Wrap",
+				uname: \wrap,
+			),
+			(
+				name: "Fold",
+				uname: \fold,
 			)
 		],
 		routing_insert: [
@@ -460,7 +501,7 @@
 				uname: (osc++"_intensity").asSymbol,
 				name: "Intensity",
 				kind: \knob,
-				spec: \freq.asSpec,
+				spec: \unipolar.asSpec,
 				numslot: 3
 			),
 			(
@@ -488,6 +529,12 @@
 				numslot: 0,
 				spec: \unipolar.asSpec,
 				kind: \knob
+			),
+			(
+				uname: (osc++"_spectrum").asSymbol,
+				name: "spectrum",
+				bank: \spectrum,
+				kind: \kind
 			),
 		];
 	};
@@ -519,14 +566,14 @@
 			uname: \modosc_position,
 			name: "Position",
 			kind: \knob,
-			spec: specs[\wt_pos],
+			spec: \unipolar.asSpec,
 			numslot: 2
 		),
 		(
 			uname: \modosc_filterfm,
 			name: "Filter FM",
 			kind: \knob,
-			spec: \freq.asSpec,
+			spec: \unipolar.asSpec,
 			numslot: 2
 		),
 		(
@@ -545,7 +592,7 @@
 	params[\noise] = [
 		(
 			uname: \noise_color,
-			name: "Color",
+			name: "N/A",
 			kind: \knob,
 			spec: \unipolar.asSpec,
 			numslot: 2
@@ -656,14 +703,14 @@
 	params[\others] = [
 		(
 			uname: \filter_parseq,
-			name: "Par Seq",
+			name: "ParSeq",
 			kind: \knob,
 			spec: \unipolar.asSpec,
 			numslot: 2
 		),
 		(
 			uname: \filter_mix,
-			name: "Filter Mix",
+			name: "F Mix",
 			kind: \knob,
 			spec: \unipolar.asSpec,
 			numslot: 2
@@ -675,7 +722,8 @@
 	params[\master_pan] = [
 		(
 			uname: \amp_mod,
-			name: "Amp Mod",
+			//name: "Amp Mod",
+			name: "N/A",
 			kind: \knob,
 			spec: specs[\amp],
 			numslot: 2
@@ -698,7 +746,8 @@
 	params[\bypass] = [
 		(
 			uname: \bypass_mod,
-			name: "Byp Mod",
+			//name: "Byp Mod",
+			name: "N/A",
 			kind: \mod_slot,
 			numslot: 2
 		),
@@ -720,15 +769,16 @@
 	params[\master] = [
 		(
 			uname: \amp,
-			name: "Master Volume",
+			name: "Master Vol",
 			kind: \knob,
+			val: 1,
 			spec: specs[\wideamp],
 			numslot: 0
 		),
 		(
 			// fake muter: can't mute master
 			uname: \master,
-			name: "Master Volume",
+			name: "",
 			kind: \mute
 		),
 	];
@@ -791,7 +841,7 @@
 				name: "Low Shelf",
 				arg_index: 0,
 				kind: \multiknob,
-				spec: \db.asSpec,
+				spec: specs[\boost],
 				numslot: 2
 			),
 			(
@@ -799,7 +849,7 @@
 				name: "Boost",
 				arg_index: 1,
 				kind: \multiknob,
-				spec: \db.asSpec,
+				spec: specs[\boost],
 				numslot: 2
 			),
 			(
@@ -815,7 +865,7 @@
 				name: "High Shelf",
 				arg_index: 3,
 				kind: \multiknob,
-				spec: \db.asSpec,
+				spec: specs[\boost],
 				numslot: 2
 			),
 			(
@@ -874,6 +924,7 @@
 				uname: (osc++"_vel").asSymbol,
 				name: "Vel",
 				kind: \knob,
+				val: 0,
 				spec: specs[\velocity],
 				numslot: 0
 			),
@@ -881,6 +932,7 @@
 				uname: (osc++"_ktr").asSymbol,
 				name: "KTR",
 				kind: \knob,
+				val:0,
 				spec: specs[\ktr],
 				numslot: 0
 			),
@@ -1045,6 +1097,20 @@
 				spec: specs[\env],
 				numslot: 0
 			),
+			//(
+			//	uname: (osc++"_phase1").asSymbol,
+			//	name: "phase",
+			//	kind: \knob,
+			//	spec: \unipolar.asSpec,
+			//	numslot: 0
+			//),
+			//(
+			//	uname: (osc++"_phase2").asSymbol,
+			//	name: "phase",
+			//	kind: \knob,
+			//	spec: \unipolar.asSpec,
+			//	numslot: 0
+			//),
 		];
 	};
 
