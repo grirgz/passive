@@ -1504,7 +1504,7 @@
 			//self.val.string = self.controller.get_val.asString;
 			//"kiki 1".debug;
 		};
-		self.controller.model.uname.debug("pknob: set_controller");
+		//self.controller.model.uname.debug("pknob: set_controller");
 		self.controller.refresh;
 
 		self.responder.remove;

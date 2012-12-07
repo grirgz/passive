@@ -5,6 +5,7 @@
 //		y = sin(sqrt(x)/(x*2)).linlin(0,1,0,1);
 //		y;
 //	},
+	name: "Builtin curves",
 
 	////////////// methods
 

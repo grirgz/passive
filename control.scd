@@ -852,7 +852,7 @@
 		};
 
 		//"before final_val".debug;
-		[self.model.uname, self.main_controller.modulation_manager.get_external_value(self.model.uname)].debug("ext");
+		//[self.model.uname, self.main_controller.modulation_manager.get_external_value(self.model.uname)].debug("ext");
 
 		self.update_val;
 
@@ -860,7 +860,7 @@
 
 	update_val: { arg self;
 		var final_val;
-		self.model.uname.debug("class_pparam_controller: update_val");
+		//self.model.uname.debug("class_pparam_controller: update_val");
 		final_val = self.model.norm_val + self.main_controller.modulation_manager.get_external_value(self.model.uname);
 		self.bus.set(self.model.spec.map(final_val));
 	},
@@ -1128,8 +1128,8 @@
 		var preset;
 		//uname.debug("class_presets_global_controller: save_current_preset_as_uname");
 		if(uname != \no_preset) {
-			uname.dump;
-			self.menu_items.do { arg me; me.dump };
+			//uname.dump;
+			//self.menu_items.do { arg me; me.dump };
 			preset = self.main_controller.save_preset;
 			preset[\uname] = uname;
 			preset[\name] = uname; // TODO: watch for forbiden chars in path
@@ -1913,7 +1913,7 @@
 		//self.patch = Patch(\passive,  self.synthdef_args );
 		//self.patch.invalidateSynthDef;
 		//self.rebuild = false;
-		args.postcs;
+		//args.postcs;
 	},
 
 	update_arg: { arg self, uname;
