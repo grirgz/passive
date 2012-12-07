@@ -1,3 +1,4 @@
+plop
 
 Passive is an Instr plus a GUI which imitate a well known VST. 
 You can refer to the original VST manual if you want to understand more the usage of passive
