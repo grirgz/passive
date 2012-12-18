@@ -174,7 +174,7 @@
 	pitch: ControlSpec(-64,64, \lin, 0, 0, "midi"),
 	rate: \widefreq.asSpec,
 	glidefade: \unipolar.asSpec,
-	env: \attack.asSpec,
+	env: ControlSpec(0, 16, 'linear', 0, 0.1, ""),
 	boost: ControlSpec(-500, 100, 'lin', 0, 0),
 	amp: ControlSpec(0, 1, 'amp', 0, 0.1, ""),
 	wideamp: ControlSpec(0, 6, 'amp', 0, 0.1, ""),

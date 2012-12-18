@@ -11,9 +11,11 @@ Instr(\passive, { arg
 
 		/////// busses
 
-		modulation_bus=#[0,0,0,0, 0,0,0,0],
+		//modulation_bus=#[0,0,0,0, 0,0,0,0],
 
 		////// master,
+
+		doneAction=2,
 
 		freq=200,
 		velocity,
@@ -216,13 +218,16 @@ Instr(\passive, { arg
 	var feedback_f1, feedback_f2;
 	var noise_f1, noise_f2;
 
-	var modulators_bus;
+	var modulators_bus; // modulators signal
+	var modulation_bus; // bus indexes
 
 	var input, input_mod, modulate, modulators;
 	var feedback, insert_effect, insert_feedback, onoff, bypass;
 	var bypass_osc, bypass_dest, bypass_signal = 0;
 	var build_spread_array, build_freq_spread_array;
 
+
+	modulation_bus = \modulation_bus.kr([0,0,0,0, 0,0,0,0]);
 
 	rand_number = Rand(0,1);
 
@@ -347,329 +352,335 @@ Instr(\passive, { arg
 	modulators_bus = 8.collect { arg idx;
 		InFeedback.ar(modulation_bus[idx], 1);
 	};
+	//FbL { arg modulators_bus;
 
-	input_mod = {
-		var keys;
-		var ret;
-		var input_array;
-		var vals;
-		keys = #[
 
-			////// env,
+		input_mod = {
+			var keys;
+			var ret;
+			var input_array;
+			var vals;
+			keys = #[
 
-			env1_attack_level,
-			env1_attack_time,
-			env1_decay_level,
-			env1_decay_time,
-			env1_delay_time,
-			env1_ktr,
-			env1_release_time,
-			env1_sustain_level,
-			env1_sustain_time,
-			env1_vel,
-			env2_attack_level,
-			env2_attack_time,
-			env2_decay_level,
-			env2_decay_time,
-			env2_delay_time,
-			env2_ktr,
-			env2_release_time,
-			env2_sustain_level,
-			env2_sustain_time,
-			env2_vel,
-			env3_attack_level,
-			env3_attack_time,
-			env3_decay_level,
-			env3_decay_time,
-			env3_delay_time,
-			env3_ktr,
-			env3_release_time,
-			env3_sustain_level,
-			env3_sustain_time,
-			env3_vel,
-			env4_attack_level,
-			env4_attack_time,
-			env4_decay_level,
-			env4_decay_time,
-			env4_delay_time,
-			env4_ktr,
-			env4_release_time,
-			env4_sustain_level,
-			env4_sustain_time,
-			env4_vel,
+				////// env,
 
-			///// modulators,
+				env1_attack_level,
+				env1_attack_time,
+				env1_decay_level,
+				env1_decay_time,
+				env1_delay_time,
+				env1_ktr,
+				env1_release_time,
+				env1_sustain_level,
+				env1_sustain_time,
+				env1_vel,
+				env2_attack_level,
+				env2_attack_time,
+				env2_decay_level,
+				env2_decay_time,
+				env2_delay_time,
+				env2_ktr,
+				env2_release_time,
+				env2_sustain_level,
+				env2_sustain_time,
+				env2_vel,
+				env3_attack_level,
+				env3_attack_time,
+				env3_decay_level,
+				env3_decay_time,
+				env3_delay_time,
+				env3_ktr,
+				env3_release_time,
+				env3_sustain_level,
+				env3_sustain_time,
+				env3_vel,
+				env4_attack_level,
+				env4_attack_time,
+				env4_decay_level,
+				env4_decay_time,
+				env4_delay_time,
+				env4_ktr,
+				env4_release_time,
+				env4_sustain_level,
+				env4_sustain_time,
+				env4_vel,
 
-			modulator1_amp,
-			modulator1_ampmod,
-			modulator1_curve1,
-			modulator1_curve2,
-			modulator1_env_attack,
-			modulator1_env_decay,
-			modulator1_glidefade,
-			modulator1_rate,
-			modulator2_amp,
-			modulator2_ampmod,
-			modulator2_curve1,
-			modulator2_curve2,
-			modulator2_env_attack,
-			modulator2_env_decay,
-			modulator2_glidefade,
-			modulator2_rate,
-			modulator3_amp,
-			modulator3_ampmod,
-			modulator3_curve1,
-			modulator3_curve2,
-			modulator3_env_attack,
-			modulator3_env_decay,
-			modulator3_glidefade,
-			modulator3_rate,
-			modulator4_amp,
-			modulator4_ampmod,
-			modulator4_curve1,
-			modulator4_curve2,
-			modulator4_env_attack,
-			modulator4_env_decay,
-			modulator4_glidefade,
-			modulator4_rate
+				///// modulators,
+
+				modulator1_amp,
+				modulator1_ampmod,
+				modulator1_curve1,
+				modulator1_curve2,
+				modulator1_env_attack,
+				modulator1_env_decay,
+				modulator1_glidefade,
+				modulator1_rate,
+				modulator2_amp,
+				modulator2_ampmod,
+				modulator2_curve1,
+				modulator2_curve2,
+				modulator2_env_attack,
+				modulator2_env_decay,
+				modulator2_glidefade,
+				modulator2_rate,
+				modulator3_amp,
+				modulator3_ampmod,
+				modulator3_curve1,
+				modulator3_curve2,
+				modulator3_env_attack,
+				modulator3_env_decay,
+				modulator3_glidefade,
+				modulator3_rate,
+				modulator4_amp,
+				modulator4_ampmod,
+				modulator4_curve1,
+				modulator4_curve2,
+				modulator4_env_attack,
+				modulator4_env_decay,
+				modulator4_glidefade,
+				modulator4_rate
+			];
+			vals = [
+				////// env,
+
+				env1_attack_level,
+				env1_attack_time,
+				env1_decay_level,
+				env1_decay_time,
+				env1_delay_time,
+				env1_ktr,
+				env1_release_time,
+				env1_sustain_level,
+				env1_sustain_time,
+				env1_vel,
+				env2_attack_level,
+				env2_attack_time,
+				env2_decay_level,
+				env2_decay_time,
+				env2_delay_time,
+				env2_ktr,
+				env2_release_time,
+				env2_sustain_level,
+				env2_sustain_time,
+				env2_vel,
+				env3_attack_level,
+				env3_attack_time,
+				env3_decay_level,
+				env3_decay_time,
+				env3_delay_time,
+				env3_ktr,
+				env3_release_time,
+				env3_sustain_level,
+				env3_sustain_time,
+				env3_vel,
+				env4_attack_level,
+				env4_attack_time,
+				env4_decay_level,
+				env4_decay_time,
+				env4_delay_time,
+				env4_ktr,
+				env4_release_time,
+				env4_sustain_level,
+				env4_sustain_time,
+				env4_vel,
+
+				///// modulators,
+
+				modulator1_amp,
+				modulator1_ampmod,
+				modulator1_curve1,
+				modulator1_curve2,
+				modulator1_env_attack,
+				modulator1_env_decay,
+				modulator1_glidefade,
+				modulator1_rate,
+				modulator2_amp,
+				modulator2_ampmod,
+				modulator2_curve1,
+				modulator2_curve2,
+				modulator2_env_attack,
+				modulator2_env_decay,
+				modulator2_glidefade,
+				modulator2_rate,
+				modulator3_amp,
+				modulator3_ampmod,
+				modulator3_curve1,
+				modulator3_curve2,
+				modulator3_env_attack,
+				modulator3_env_decay,
+				modulator3_glidefade,
+				modulator3_rate,
+				modulator4_amp,
+				modulator4_ampmod,
+				modulator4_curve1,
+				modulator4_curve2,
+				modulator4_env_attack,
+				modulator4_env_decay,
+				modulator4_glidefade,
+				modulator4_rate
+			];
+			ret = Dictionary.new;
+			input_array = List.new;
+			keys.do { arg key, i;
+				var val;
+				val = modulate.(key, vals[i], modulators_bus);
+				ret[key] = val;
+				input_array.add(val);
+				//[keys, vals[i], val].debug("passive: input: keys, valsi, val");
+			};
+			//mod.do { arg key, i;
+			//	var val;
+			//	var idx = input_dict[key];
+			//	val = modulate.(key, vals[idx]);
+			//	ret[key] = val;
+			//	input_array.add(val);
+			//	[keys, vals[i], val].debug("passive: input: keys, valsi, val");
+			//};
+			//input_array.debug("passive: input: input_array");
+			# 
+
+				////// env,
+
+				env1_attack_level,
+				env1_attack_time,
+				env1_decay_level,
+				env1_decay_time,
+				env1_delay_time,
+				env1_ktr,
+				env1_release_time,
+				env1_sustain_level,
+				env1_sustain_time,
+				env1_vel,
+				env2_attack_level,
+				env2_attack_time,
+				env2_decay_level,
+				env2_decay_time,
+				env2_delay_time,
+				env2_ktr,
+				env2_release_time,
+				env2_sustain_level,
+				env2_sustain_time,
+				env2_vel,
+				env3_attack_level,
+				env3_attack_time,
+				env3_decay_level,
+				env3_decay_time,
+				env3_delay_time,
+				env3_ktr,
+				env3_release_time,
+				env3_sustain_level,
+				env3_sustain_time,
+				env3_vel,
+				env4_attack_level,
+				env4_attack_time,
+				env4_decay_level,
+				env4_decay_time,
+				env4_delay_time,
+				env4_ktr,
+				env4_release_time,
+				env4_sustain_level,
+				env4_sustain_time,
+				env4_vel,
+
+				///// modulators,
+
+				modulator1_amp,
+				modulator1_ampmod,
+				modulator1_curve1,
+				modulator1_curve2,
+				modulator1_env_attack,
+				modulator1_env_decay,
+				modulator1_glidefade,
+				modulator1_rate,
+				modulator2_amp,
+				modulator2_ampmod,
+				modulator2_curve1,
+				modulator2_curve2,
+				modulator2_env_attack,
+				modulator2_env_decay,
+				modulator2_glidefade,
+				modulator2_rate,
+				modulator3_amp,
+				modulator3_ampmod,
+				modulator3_curve1,
+				modulator3_curve2,
+				modulator3_env_attack,
+				modulator3_env_decay,
+				modulator3_glidefade,
+				modulator3_rate,
+				modulator4_amp,
+				modulator4_ampmod,
+				modulator4_curve1,
+				modulator4_curve2,
+				modulator4_env_attack,
+				modulator4_env_decay,
+				modulator4_glidefade,
+				modulator4_rate
+				= input_array;
+			ret;
+		}.value;
+
+		modulators = [
+			Instr(\p_env).value((
+				velocity:velocity, env_ktr:env1_ktr, env_vel:env1_vel, freq:freq,
+				gate:gate, delayTime:env1_delay_time, attackTime:env1_attack_time, decayTime:env1_decay_time,
+				sustainLevel:env1_decay_level, releaseTime:env1_release_time, peakLevel:env1_attack_level, curve:0
+			)),
+			Instr(\p_env).value((
+				velocity:velocity, env_ktr:env2_ktr, env_vel:env2_vel, freq:freq,
+				gate:gate, delayTime:env2_delay_time, attackTime:env2_attack_time, decayTime:env2_decay_time,
+				sustainLevel:env2_decay_level, releaseTime:env2_release_time, peakLevel:env2_attack_level, curve:0
+			)),
+			Instr(\p_env).value((
+				velocity:velocity, env_ktr:env3_ktr, env_vel:env3_vel, freq:freq,
+				gate:gate, delayTime:env3_delay_time, attackTime:env3_attack_time, decayTime:env3_decay_time,
+				sustainLevel:env3_decay_level, releaseTime:env3_release_time, peakLevel:env3_attack_level, curve:0
+			)),
+			Instr(\p_env).value((
+				velocity:velocity, env_ktr:env4_ktr, env_vel:env4_vel, freq:freq,
+				gate:gate, delayTime:env4_delay_time, attackTime:env4_attack_time, decayTime:env4_decay_time,
+				sustainLevel:env4_decay_level, releaseTime:env4_release_time, peakLevel:env4_attack_level, curve:0,
+				doneAction: doneAction
+			)),
+
+			Instr(\p_modulator).value((
+				kind:kinds[\modulator1], internal_mod:mod[\internal_mod0], steps:steps[0], gate:gate, amp:modulator1_amp, rate:modulator1_rate, 
+				attackTime:modulator1_env_attack, releaseTime:modulator1_env_decay, 
+				//phase:[modulator1_phase1, modulator1_phase2],
+				amp_mod:modulator1_ampmod, glidefade_mod:modulator1_glidefade, curve1:modulator1_curve1, curve2:modulator1_curve2
+			)),
+			Instr(\p_modulator).value((
+				kind:kinds[\modulator2], internal_mod:mod[\internal_mod1], steps:steps[1], gate:gate, amp:modulator2_amp, rate:modulator2_rate, 
+				attackTime:modulator2_env_attack, releaseTime:modulator2_env_decay, 
+				//phase:[modulator2_phase1, modulator2_phase2],
+				amp_mod:modulator2_ampmod, glidefade_mod:modulator2_glidefade, curve1:modulator2_curve1, curve2:modulator2_curve2
+			)),
+			Instr(\p_modulator).value((
+				kind:kinds[\modulator3], internal_mod:mod[\internal_mod2], steps:steps[2], gate:gate, amp:modulator3_amp, rate:modulator3_rate, 
+				attackTime:modulator3_env_attack, releaseTime:modulator3_env_decay,
+				//phase:[modulator3_phase1, modulator3_phase2],
+				amp_mod:modulator3_ampmod, glidefade_mod:modulator3_glidefade, curve1:modulator3_curve1, curve2:modulator3_curve2
+			)),
+			Instr(\p_modulator).value((
+				kind:kinds[\modulator4], internal_mod:mod[\internal_mod3], steps:steps[3], gate:gate, amp:modulator4_amp, rate:modulator4_rate, 
+				attackTime:modulator4_env_attack, releaseTime:modulator4_env_decay,
+				//phase:[modulator4_phase1, modulator4_phase2],
+				amp_mod:modulator4_ampmod, glidefade_mod:modulator4_glidefade, curve1:modulator4_curve1, curve2:modulator4_curve2
+			))
 		];
-		vals = [
-			////// env,
 
-			env1_attack_level,
-			env1_attack_time,
-			env1_decay_level,
-			env1_decay_time,
-			env1_delay_time,
-			env1_ktr,
-			env1_release_time,
-			env1_sustain_level,
-			env1_sustain_time,
-			env1_vel,
-			env2_attack_level,
-			env2_attack_time,
-			env2_decay_level,
-			env2_decay_time,
-			env2_delay_time,
-			env2_ktr,
-			env2_release_time,
-			env2_sustain_level,
-			env2_sustain_time,
-			env2_vel,
-			env3_attack_level,
-			env3_attack_time,
-			env3_decay_level,
-			env3_decay_time,
-			env3_delay_time,
-			env3_ktr,
-			env3_release_time,
-			env3_sustain_level,
-			env3_sustain_time,
-			env3_vel,
-			env4_attack_level,
-			env4_attack_time,
-			env4_decay_level,
-			env4_decay_time,
-			env4_delay_time,
-			env4_ktr,
-			env4_release_time,
-			env4_sustain_level,
-			env4_sustain_time,
-			env4_vel,
-
-			///// modulators,
-
-			modulator1_amp,
-			modulator1_ampmod,
-			modulator1_curve1,
-			modulator1_curve2,
-			modulator1_env_attack,
-			modulator1_env_decay,
-			modulator1_glidefade,
-			modulator1_rate,
-			modulator2_amp,
-			modulator2_ampmod,
-			modulator2_curve1,
-			modulator2_curve2,
-			modulator2_env_attack,
-			modulator2_env_decay,
-			modulator2_glidefade,
-			modulator2_rate,
-			modulator3_amp,
-			modulator3_ampmod,
-			modulator3_curve1,
-			modulator3_curve2,
-			modulator3_env_attack,
-			modulator3_env_decay,
-			modulator3_glidefade,
-			modulator3_rate,
-			modulator4_amp,
-			modulator4_ampmod,
-			modulator4_curve1,
-			modulator4_curve2,
-			modulator4_env_attack,
-			modulator4_env_decay,
-			modulator4_glidefade,
-			modulator4_rate
-		];
-		ret = Dictionary.new;
-		input_array = List.new;
-		keys.do { arg key, i;
-			var val;
-			val = modulate.(key, vals[i], modulators_bus);
-			ret[key] = val;
-			input_array.add(val);
-			//[keys, vals[i], val].debug("passive: input: keys, valsi, val");
+		modulators.do { arg modulator, idx;
+			if(mod[\disabled].includes(idx)) {
+				modulators[idx] = DC.ar(0);
+			} {
+				Out.ar(modulation_bus[idx], modulator);
+				XOut.ar(routing[\modulation_fxbus][idx], Line.kr(0,1,0.01), modulator);
+			}
 		};
-		//mod.do { arg key, i;
-		//	var val;
-		//	var idx = input_dict[key];
-		//	val = modulate.(key, vals[idx]);
-		//	ret[key] = val;
-		//	input_array.add(val);
-		//	[keys, vals[i], val].debug("passive: input: keys, valsi, val");
-		//};
-		//input_array.debug("passive: input: input_array");
-		# 
 
-			////// env,
+		//modulators;
 
-			env1_attack_level,
-			env1_attack_time,
-			env1_decay_level,
-			env1_decay_time,
-			env1_delay_time,
-			env1_ktr,
-			env1_release_time,
-			env1_sustain_level,
-			env1_sustain_time,
-			env1_vel,
-			env2_attack_level,
-			env2_attack_time,
-			env2_decay_level,
-			env2_decay_time,
-			env2_delay_time,
-			env2_ktr,
-			env2_release_time,
-			env2_sustain_level,
-			env2_sustain_time,
-			env2_vel,
-			env3_attack_level,
-			env3_attack_time,
-			env3_decay_level,
-			env3_decay_time,
-			env3_delay_time,
-			env3_ktr,
-			env3_release_time,
-			env3_sustain_level,
-			env3_sustain_time,
-			env3_vel,
-			env4_attack_level,
-			env4_attack_time,
-			env4_decay_level,
-			env4_decay_time,
-			env4_delay_time,
-			env4_ktr,
-			env4_release_time,
-			env4_sustain_level,
-			env4_sustain_time,
-			env4_vel,
-
-			///// modulators,
-
-			modulator1_amp,
-			modulator1_ampmod,
-			modulator1_curve1,
-			modulator1_curve2,
-			modulator1_env_attack,
-			modulator1_env_decay,
-			modulator1_glidefade,
-			modulator1_rate,
-			modulator2_amp,
-			modulator2_ampmod,
-			modulator2_curve1,
-			modulator2_curve2,
-			modulator2_env_attack,
-			modulator2_env_decay,
-			modulator2_glidefade,
-			modulator2_rate,
-			modulator3_amp,
-			modulator3_ampmod,
-			modulator3_curve1,
-			modulator3_curve2,
-			modulator3_env_attack,
-			modulator3_env_decay,
-			modulator3_glidefade,
-			modulator3_rate,
-			modulator4_amp,
-			modulator4_ampmod,
-			modulator4_curve1,
-			modulator4_curve2,
-			modulator4_env_attack,
-			modulator4_env_decay,
-			modulator4_glidefade,
-			modulator4_rate
-			= input_array;
-		ret;
-	}.value;
-
-	modulators = [
-		Instr(\p_env).value((
-			velocity:velocity, env_ktr:env1_ktr, env_vel:env1_vel, freq:freq,
-			gate:gate, delayTime:env1_delay_time, attackTime:env1_attack_time, decayTime:env1_decay_time,
-			sustainLevel:env1_decay_level, releaseTime:env1_release_time, peakLevel:env1_attack_level, curve:0
-		)),
-		Instr(\p_env).value((
-			velocity:velocity, env_ktr:env2_ktr, env_vel:env2_vel, freq:freq,
-			gate:gate, delayTime:env2_delay_time, attackTime:env2_attack_time, decayTime:env2_decay_time,
-			sustainLevel:env2_decay_level, releaseTime:env2_release_time, peakLevel:env2_attack_level, curve:0
-		)),
-		Instr(\p_env).value((
-			velocity:velocity, env_ktr:env3_ktr, env_vel:env3_vel, freq:freq,
-			gate:gate, delayTime:env3_delay_time, attackTime:env3_attack_time, decayTime:env3_decay_time,
-			sustainLevel:env3_decay_level, releaseTime:env3_release_time, peakLevel:env3_attack_level, curve:0
-		)),
-		Instr(\p_env).value((
-			velocity:velocity, env_ktr:env4_ktr, env_vel:env4_vel, freq:freq,
-			gate:gate, delayTime:env4_delay_time, attackTime:env4_attack_time, decayTime:env4_decay_time,
-			sustainLevel:env4_decay_level, releaseTime:env4_release_time, peakLevel:env4_attack_level, curve:0,
-			doneAction: 2
-		)),
-
-		Instr(\p_modulator).value((
-			kind:kinds[\modulator1], internal_mod:mod[\internal_mod0], steps:steps[0], gate:gate, amp:modulator1_amp, rate:modulator1_rate, 
-			attackTime:modulator1_env_attack, releaseTime:modulator1_env_decay, 
-			//phase:[modulator1_phase1, modulator1_phase2],
-			amp_mod:modulator1_ampmod, glidefade_mod:modulator1_glidefade, curve1:modulator1_curve1, curve2:modulator1_curve2
-		)),
-		Instr(\p_modulator).value((
-			kind:kinds[\modulator2], internal_mod:mod[\internal_mod1], steps:steps[1], gate:gate, amp:modulator2_amp, rate:modulator2_rate, 
-			attackTime:modulator2_env_attack, releaseTime:modulator2_env_decay, 
-			//phase:[modulator2_phase1, modulator2_phase2],
-			amp_mod:modulator2_ampmod, glidefade_mod:modulator2_glidefade, curve1:modulator2_curve1, curve2:modulator2_curve2
-		)),
-		Instr(\p_modulator).value((
-			kind:kinds[\modulator3], internal_mod:mod[\internal_mod2], steps:steps[2], gate:gate, amp:modulator3_amp, rate:modulator3_rate, 
-			attackTime:modulator3_env_attack, releaseTime:modulator3_env_decay,
-			//phase:[modulator3_phase1, modulator3_phase2],
-			amp_mod:modulator3_ampmod, glidefade_mod:modulator3_glidefade, curve1:modulator3_curve1, curve2:modulator3_curve2
-		)),
-		Instr(\p_modulator).value((
-			kind:kinds[\modulator4], internal_mod:mod[\internal_mod3], steps:steps[3], gate:gate, amp:modulator4_amp, rate:modulator4_rate, 
-			attackTime:modulator4_env_attack, releaseTime:modulator4_env_decay,
-			//phase:[modulator4_phase1, modulator4_phase2],
-			amp_mod:modulator4_ampmod, glidefade_mod:modulator4_glidefade, curve1:modulator4_curve1, curve2:modulator4_curve2
-		))
-	];
-
-	modulators.do { arg modulator, idx;
-		if(mod[\disabled].includes(idx)) {
-			modulators[idx] = 0;
-		} {
-			Out.ar(modulation_bus[idx], modulator);
-			XOut.ar(routing[\modulation_fxbus][idx], Line.kr(0,1,0.01), modulator);
-		}
-	};
+	//};
 
 	//input = {
 	//	var keys;
@@ -1281,6 +1292,8 @@ Instr(\passive_fx, { arg
 		routing,
 		steps,
 
+		doneAction=2,
+
 		////// master,
 
 		freq=200,
@@ -1455,8 +1468,8 @@ Instr(\passive_fx, { arg
 	//debug("------ passive: END");
 	//ou = oudb;
 	
-	DetectSilence.ar(ou, 0.001, 10, doneAction:2);
-	ou = ou * EnvGate.new(1, gate, 0.5, 2);
+	DetectSilence.ar(ou, 0.001, 10, doneAction:doneAction);
+	ou = ou * EnvGate.new(1, gate, 0.5, doneAction);
 	ou = ou * amp;
 
 

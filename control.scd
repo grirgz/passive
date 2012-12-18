@@ -858,6 +858,10 @@
 
 	},
 
+	set_norm_val: { arg self, val;
+		self.set_val(val, true)
+	},
+
 	update_val: { arg self;
 		var final_val;
 		//self.model.uname.debug("class_pparam_controller: update_val");
@@ -1144,12 +1148,12 @@
 	load_preset_by_uname: { arg self, uname;
 		var preset;
 		if(uname != \no_preset) {
-			self.main_controller.synthdef_name_suffix = "_"++uname;
+			//self.main_controller.synthdef_name_suffix = "_"++uname;
 			preset = self.main_controller.load_preset(self.preset_dict[uname]);
 			self.model.val = self.menu_items.indexOfEqual(uname) ?? 0;
 			self.changed(\set_property, \value, self.model.val);
 		} {
-			self.main_controller.synthdef_name_suffix = "";
+			//self.main_controller.synthdef_name_suffix = "";
 			nil;
 		};
 	},
@@ -1730,15 +1734,17 @@
 ~class_passive_controller = (
 	
 	bus_dict: Dictionary.new,
-	rebuild_synthdef: true,
+	rebuild_synthdef: true, // FIXME: should be: synthdef_rebuilt
 	disable_build_synthdef: false,
 	synthdef_name: \passive,
 	synthdef_fx_name: \passive_fx,
 	synthdef_name_suffix: "",
 
-	new: { arg self;
+	new: { arg self, suffix = "";
 		self = self.deepCopy;
+		self.resource_uid = "passive_%".format(UniqueID.next).asSymbol;
 		//"DEBUTTT".debug;
+		self.synthdef_name_suffix = suffix;
 		self.modulation_manager = ~class_modulation_manager.new(self);
 		self.fx_feedback_bus = self.get_new_control_bus(\fx_fb);
 		//self.fx_feedback_bus.debug("FXFEEDBACK");
@@ -1789,7 +1795,10 @@
 		var args = ();
 		var synthdef;
 
-		"passive: build_synthdef".debug;
+		self.synthdef_name = (\passive++self.synthdef_name_suffix).asSymbol;
+		self.synthdef_fx_name = (\passive_fx++self.synthdef_name_suffix).asSymbol;
+
+		"passive: build_synthdef % and %".format(self.synthdef_name, self.synthdef_fx_name).debug;
 
 		args[\routing] = (voicing:());
 		args[\kinds] = ();
@@ -1869,6 +1878,9 @@
 		//self.synthdef.debug("synthdef");
 		//"build args 1".debug;
 		args[\gate] = 1;
+
+		args[\fx_bus] = self.fx_bus.index;
+		args[\fx_bypass_bus] = self.fx_bypass_bus.index;
 		{
 			var enabled, kinds, mod, routing, steps;
 
@@ -1883,27 +1895,29 @@
 		//"build args 1".debug;
 			#[ enabled, kinds, mod, routing, steps ].do { arg key; args.removeAt(key) };
 
-			self.synthdef_name = (\passive++self.synthdef_name_suffix).asSymbol;
-			self.synthdef_fx_name = (\passive_fx++self.synthdef_name_suffix).asSymbol;
-
-			SynthDef(self.synthdef_name, { 
+			SynthDef(self.synthdef_name, { arg fx_bus, fx_bypass_bus;
 			//SynthDef(\passive, { 
 					var ou;
 					ou = SynthDef.wrap(Instr(\passive).func, nil, [enabled, kinds, mod, routing, steps]);
-					Out.ar(self.fx_bus.index, ou[0]);
-					Out.ar(self.fx_bypass_bus.index, ou[1]);
+					//ou = SinOsc.ar(400) ! 2;
+					ou[0].debug("synthdef note out");
+					ou[1].debug("synthdef bypass out");
+					Out.ar(fx_bus, ou[0]);
+					//Out.ar(0, ou[0]);
+					Out.ar(fx_bypass_bus, ou[1]);
 					//Out.ar(0, ou);
 			})
 			//.debug("############################synthdef")
 			.add;
 		//"build args 1".debug;
 
-			SynthDef(self.synthdef_fx_name, { arg out = 0;
+			SynthDef(self.synthdef_fx_name, { arg out = 0, fx_bus, fx_bypass_bus;
 			//SynthDef(\passive_fx, { arg out = 0;
 					var ou;
-					var in = In.ar(self.fx_bus.index, 2);
-					var in_bypass = In.ar(self.fx_bypass_bus.index, 2);
+					var in = In.ar(fx_bus, 2);
+					var in_bypass = In.ar(fx_bypass_bus, 2);
 					ou = SynthDef.wrap(Instr(\passive_fx).func, nil, [in, in_bypass, enabled, kinds, mod, routing, steps]);
+					ou.debug("synthdef fx out");
 					ou = Out.ar(out, ou);
 			}).add;
 		//"build args 1".debug;
@@ -1952,6 +1966,11 @@
 		} {
 			dict;
 		};
+	},
+
+	get_pattern: {
+		
+
 	},
 
 	get_piano: { arg self;
@@ -2037,10 +2056,11 @@
 	},
 
 	register_buffer: { arg self, buffer, uname;
-		BufferPool.retain(buffer, \passive, uname);
+		BufferPool.retain(buffer, self.resource_uid, uname);
 	},
 
 	destructor: { arg self;
+		// TODO: share same buffer among passive instances
 		if(self.view.notNil) {
 			self.view.window.close;
 		};
@@ -2049,7 +2069,7 @@
 			bus.free;
 		};
 
-		BufferPool.release_client(\passive);
+		BufferPool.release_client(self.resource_uid);
 	},
 
 	get_arg: { arg self, key;
@@ -2082,6 +2102,7 @@
 
 	load_preset: { arg self, preset;
 		//preset.name.debug("=================loading preset");
+		preset = preset.deepCopy;
 		self.modulation_manager.load_data(preset[\modulation_manager]);
 		self.disable_build_synthdef = true;
 		preset.data.keys.do { arg key;

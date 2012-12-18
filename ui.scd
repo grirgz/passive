@@ -31,39 +31,46 @@
 	val;
 };
 
-~keycodes = if(GUI.current == QtGUI) {
-	(
-		enter:104,
-		escape: 9,
-		key_c: 54,
-		key_x: 53,
-		key_v: 55,
-		key_n: 57,
-		left_arrow: 113,
-		right_arrow: 114,
-		up_arrow: 111,
-		down_arrow: 116,
-		left_click: 0,
-		right_click: 1,
-		middle_click: 2,
-	
-	);
-} {
-	(
-		enter:10,
-		escape: 27,
-		key_c: 67,
-		key_x: 88,
-		key_v: 86,
-		left_arrow: 37,
-		right_arrow: 39,
-		up_arrow: 38,
-		down_arrow: 40,
-		left_click: 1,
-		right_click: 3,
-		middle_click: 2,
-	)
-};
+~keycodes_qt = (
+	enter:104,
+	escape: 9,
+	key_c: 54,
+	key_x: 53,
+	key_v: 55,
+	key_n: 57,
+	left_arrow: 113,
+	right_arrow: 114,
+	up_arrow: 111,
+	down_arrow: 116,
+	left_click: 0,
+	right_click: 1,
+	middle_click: 2,
+
+);
+~keycodes_swing = (
+	enter:10,
+	escape: 27,
+	key_c: 67,
+	key_x: 88,
+	key_v: 86,
+	left_arrow: 37,
+	right_arrow: 39,
+	up_arrow: 38,
+	down_arrow: 40,
+	left_click: 1,
+	right_click: 3,
+	middle_click: 2,
+);
+
+~keycodes = {
+	var proto = ();
+	~keycodes_qt.keys.do { arg key;
+		proto[key] = { arg self; 
+			if(GUI.current == QtGUI) { ~keycodes_qt[key] } { ~keycodes_swing[key] }
+		}
+	};
+	proto
+}.value;
 
 ~map_modulator_to_color = { arg modkind;
 	switch(modkind,
@@ -1215,7 +1222,7 @@
 		self.text.string = "W";
 		self.text.font = Font("Helvetica", 9);
 		self.text.mouseDownAction={ arg view, x, y, modifier, buttonNumber, clickCount;
-			//buttonNumber.debug("class_mod_slot: mouseDownAction: buttonNumber");
+			buttonNumber.debug("class_mod_slot: mouseDownAction: buttonNumber");
 			switch(buttonNumber,
 				~keycodes.middle_click, {
 					self.clear_slot;
@@ -2374,7 +2381,7 @@
 			ret.knob = Knob.new(klayout, Rect(0,0,bounds.width,bounds.height-tsize));
 			ret.knob.value = 1;
 			ret.knob.action = { arg knob;
-				ctrl.set_property(\value, knob.value, false);
+				ctrl.set_property(\value, knob.value, true);
 			};
 			tlayout = HLayoutView.new(klayout, Rect(0,0,bounds.width-10,tsize));
 			text = TextField.new(tlayout, Rect(0,0,bounds.width-20,tsize));

@@ -2,7 +2,7 @@ GUI.qt
 Quarks.gui
 
 (
-	"~/code/sc/passive/main.sc".standardizePath.load;
+	s.waitForBoot {	"~/code/sc/passive/main.scd".standardizePath.load; }
 )
 Debug.enableDebug = true
 Debug.enableDebug = false
@@ -32,6 +32,153 @@ Debug.enableDebug = false
 ~passive.build_synthdef;
 
 )
+
+
+(
+~play_notes = { arg passive;
+	var piano;
+	var note;
+	piano = passive.get_piano;
+	Task {
+		loop {
+			note = piano.(300);
+			2.wait;
+			note.release_node;
+			1.wait;
+		}
+	}.play
+};
+)
+(
+
+~a = ~class_passive_controller.new("bla");
+~a.load_preset_by_uname("alien indus");
+~play_notes.(~a);
+~a.synthdef_name
+
+~b = ~class_passive_controller.new("rho");
+~b.load_preset_by_uname("lancinant");
+~play_notes.(~b);
+)
+UniqueID.next
+
+
+~fx_group
+Bus.
+~out_bus = Bus.new(\audio, 0, 1)
+~bla = Bus.audio(s)
+~bla
+
+~passive.fx_bus = ~out_bus
+~passive.build_synthdef
+~passive.synthdef_args[\out]
+~passive.synthdef_name
+~passive.synthdef_fx_name
+
+~modbus = 8.collect { arg x; Bus.audio(s, 1) }
+~note_group.nodeID
+(
+~note_group = Group.new(s);
+~fx_group = Group.after(~note_group);
+//Synth(\passive_fx_default, [\in, ~passive.fx_bus.index], target:~fx_group);
+
+~pat = 
+Pbind(
+	\degree, Pseq([0, 2, 4],inf),
+	\dur, 2,
+	\freq, Pfunc { arg ev;
+		Scale.major.degreeToFreq(ev[\degree], 60.midicps, 0);
+	},
+	//\freq, Pseq([200,300],4),
+
+	\doneAction, 14,
+	\legato, 0.7,
+	//\fx_bus, 0,
+	//\fx_bypass_bus, 7,
+	//\group, ~note_group,
+	\instrument, Pfunc { ~passive.synthdef_name.debug("instr").dump },
+	//\instrument, \piano2,
+	\velocity, 0.1,
+	\modulation_bus, Pfunc{ arg ev;
+		var group = Group.new(~note_group);
+		var modbus = 8.collect { arg x; Bus.audio(s, 1) };
+		var watcher;
+		var endfunc;
+		ev[\group] = group.nodeID;
+		watcher = NodeWatcher.register(group);
+
+		endfunc = { arg obj, what;
+			what.debug("what ?");
+			if(what == \n_end) {
+				"fin du group".debug;
+				group.removeDependant(endfunc);
+				modbus.do { arg x; x.free };
+			}
+		};
+		group.addDependant(endfunc);
+		[modbus.collect{ arg x; x.index }]
+	},
+	\compute_freqi, Pfunc { arg ev;
+		var dict = ~passive.compute_freq(ev[\freq]);
+		ev[\freq].debug("freq");
+		dict.debug("dict");
+		ev.putAll(dict);
+		1;
+	}
+) <> Pbind( * ~passive.synthdef_args.getPairs );
+
+~patfx = PmonoArtic(*(
+	[
+		~passive.synthdef_fx_name, 
+		\group, ~fx_group,
+		\legato, Pfunc { 
+			if(~passive.rebuild_synthdef) {
+				~passive.rebuild_synthdef = false;
+				0.999;
+			} {
+				1
+			} 
+		}
+	] ++ ~passive.synthdef_args.getPairs
+));
+
+~fpat = Ppar([
+	~pat,
+	~patfx,
+]);
+~fpat.trace.play
+)
+
+~passive.rebuild_synthdef
+
+4.degreeToKey(Scale.ionian)
+Scale.ionian
+s.plotTree
+
+(
+)
+
+~passive.synthdef_args[\modulation_bus]
+
+
+
+~passive.fx_bus
+
+{ Out.ar(0, In.ar(~passive.fx_bus.index)) }.play(target:~fx_group)
+
+(
+SynthDef(\nullfx, { arg in, out=0;
+	in = In.ar(in, 2);
+	Out.ar(out, in);
+}).add;
+)
+
+
+
+
+
+
+
 
 {SinOsc.ar(120)}.play
 s.quit
